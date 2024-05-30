@@ -5,6 +5,8 @@ install! "cocoapods", :warn_for_unused_master_specs_repo => false
 target 'ThreadSafeExample' do
 
   pod "ThreadSafe", :path => ".."
+  
+  pod 'SwiftLint', '~> 0.55.1', :configurations => ['Debug']
 
   target 'ThreadSafeExampleTests' do
     inherit! :search_paths
