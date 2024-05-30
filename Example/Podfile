@@ -1,0 +1,13 @@
+platform :ios, "13.0"
+use_frameworks! :linkage => :static
+install! "cocoapods", :warn_for_unused_master_specs_repo => false
+
+target 'ThreadSafeExample' do
+
+  pod "ThreadSafe", :path => ".."
+
+  target 'ThreadSafeExampleTests' do
+    inherit! :search_paths
+  end
+
+end
