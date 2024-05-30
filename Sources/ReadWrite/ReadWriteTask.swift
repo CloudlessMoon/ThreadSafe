@@ -14,10 +14,10 @@ public final class ReadWriteTask {
     private let dataQueue: DispatchQueue
     
     @UnfairLockValueWrapper
-    private var isReading: Bool
+    private var isReading: Bool = false
     
     @UnfairLockValueWrapper
-    private var isWriting: Bool
+    private var isWriting: Bool = false
     
     private var isCurrentQueue: Bool {
         let lhs = self.dataQueue.getSpecific(key: ReadWriteTask.specificKey)
@@ -28,9 +28,6 @@ public final class ReadWriteTask {
     public init(label: String) {
         self.dataQueue = DispatchQueue(label: label, attributes: .concurrent)
         self.dataQueue.setSpecific(key: ReadWriteTask.specificKey, value: UUID())
-        
-        self.isReading = false
-        self.isWriting = false
     }
     
     deinit {

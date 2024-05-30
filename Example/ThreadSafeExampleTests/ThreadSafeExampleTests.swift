@@ -20,10 +20,10 @@ final class ThreadSafeExampleTests: XCTestCase {
     }
 
     func testExample() throws {
+        let readWriteTask = ReadWriteTask(label: "test")
+        
         var name: String = "0"
         
-        var readWriteTask = ReadWriteTask(label: "test")
-
         let count = 10
         for item in 1...count {
             DispatchQueue.global().async {
@@ -109,6 +109,7 @@ final class ThreadSafeExampleTests: XCTestCase {
                 
                 let name5 = readWriteTask.read { name }
                 print("readWriteTask1 read1 \(name5)")
+            
             }
         }
     }
