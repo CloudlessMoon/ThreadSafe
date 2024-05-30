@@ -13,15 +13,24 @@ public final class ReadWriteTask {
     
     private let dataQueue: DispatchQueue
     
-    private let isReadingLock: AllocatedUnfairLock<Bool>
-    private let isWritingLock: AllocatedUnfairLock<Bool>
+    @UnfairLockValueWrapper
+    private var isReading: Bool
+    
+    @UnfairLockValueWrapper
+    private var isWriting: Bool
+    
+    private var isCurrentQueue: Bool {
+        let lhs = self.dataQueue.getSpecific(key: ReadWriteTask.specificKey)
+        let rhs = DispatchQueue.getSpecific(key: ReadWriteTask.specificKey)
+        return lhs == rhs
+    }
     
     public init(label: String) {
         self.dataQueue = DispatchQueue(label: label, attributes: .concurrent)
         self.dataQueue.setSpecific(key: ReadWriteTask.specificKey, value: UUID())
         
-        self.isReadingLock = AllocatedUnfairLock(state: false)
-        self.isWritingLock = AllocatedUnfairLock(state: false)
+        self.isReading = false
+        self.isWriting = false
     }
     
     deinit {
@@ -78,34 +87,6 @@ extension ReadWriteTask {
                 self.isWriting = false
             }
             work()
-        }
-    }
-    
-}
-
-extension ReadWriteTask {
-    
-    private var isCurrentQueue: Bool {
-        let lhs = self.dataQueue.getSpecific(key: ReadWriteTask.specificKey)
-        let rhs = DispatchQueue.getSpecific(key: ReadWriteTask.specificKey)
-        return lhs == rhs
-    }
-    
-    private var isReading: Bool {
-        get {
-            return self.isReadingLock.withLock { $0 }
-        }
-        set {
-            self.isReadingLock.withLock { $0 = newValue }
-        }
-    }
-    
-    private var isWriting: Bool {
-        get {
-            return self.isWritingLock.withLock { $0 }
-        }
-        set {
-            self.isWritingLock.withLock { $0 = newValue }
         }
     }
     

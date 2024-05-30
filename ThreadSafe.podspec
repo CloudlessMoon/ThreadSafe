@@ -14,5 +14,5 @@ Pod::Spec.new do |s|
     s.pod_target_xcconfig   = { 
         'SWIFT_INSTALL_OBJC_HEADER' => 'NO'
     }
-    s.source_files          = "Sources"
+    s.source_files          = "Sources/**/*.{swift}"
 end

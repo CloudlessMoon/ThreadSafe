@@ -22,8 +22,8 @@ public final class ReadWriteValue<Value> {
     private let task: ReadWriteTask
     
     public init(label: String, value: Value) {
-        self.task = ReadWriteTask(label: label)
         self._value = value
+        self.task = ReadWriteTask(label: label)
     }
     
 }
