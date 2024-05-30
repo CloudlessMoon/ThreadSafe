@@ -19,11 +19,17 @@ public final class ReadWriteValue<Value> {
         }
     }
     
-    private let task: ReadWriteTask
+    @UnfairLockValueWrapper
+    public var task: ReadWriteTask
     
-    public init(label: String, value: Value) {
+    public init(_ value: Value, label: String) {
         self._value = value
         self.task = ReadWriteTask(label: label)
+    }
+    
+    public init(_ value: Value, task: ReadWriteTask) {
+        self._value = value
+        self.task = task
     }
     
 }

@@ -9,104 +9,81 @@ import UIKit
 import ThreadSafe
 
 class ViewController: UIViewController {
-
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        let readWriteTask = ReadWriteTask(label: "test")
-        
-        var name = "0"
-        
-        let count = 10
-        for item in 1...count {
-            DispatchQueue.global().async {
-                name = "1"
-                
-                let name1 = readWriteTask.read { name }
-                print("readWriteTask1 read1 \(name1)")
-                
-                readWriteTask.write {
-                    name = "\(item)"
-                    print("readWriteTask1 write1 \(name)")
-                    
-                    let name1 = readWriteTask.read { name }
-                    print("readWriteTask1 read1 \(name1)")
-                    
-                    readWriteTask.write {
-                        name = "22_\(item)"
-                        print("readWriteTask1 write2 \(name)")
-                        
-                        readWriteTask.write {
-                            name = "22_\(item)"
-                            print("readWriteTask1 write2 \(name)")
-                            
-                            let name1 = readWriteTask.read { name }
-                            print("readWriteTask1 read1 \(name1)")
-                        }
-                        
-                        let name1 = readWriteTask.read { name }
-                        print("readWriteTask1 read1 \(name1)")
-                    }
-                }
-                
-                let name2 = readWriteTask.read {
-                    return name
-                }
-                print("readWriteTask1 read \(name2)")
-            }
-            
-            DispatchQueue.global().async {
-                print("readWriteTask1 read1 \(name)")
-                
-                let name1 = readWriteTask.read {
-                    //                    let name2 = readWriteTask.write {
-                    //                        return name
-                    //                    }
-                    return name
-                }
-                print("readWriteTask1 read \(name1)")
-                
-                let name2 = readWriteTask.read {
-                    return name
-                }
-                print("readWriteTask1 read \(name2)")
-                
-                let name3 = readWriteTask.read {
-                    return name
-                }
-                print("readWriteTask1 read \(name3)")
-                
-                let name4 = readWriteTask.read {
-                    return name
-                }
-                print("readWriteTask1 read \(name4)")
-                
-                readWriteTask.write {
-                    name = "\(item)"
-                    print("readWriteTask1 write1 \(name)")
-                    
-                    let name1 = readWriteTask.read { name }
-                    print("readWriteTask1 read1 \(name1)")
-                    
-                    readWriteTask.write {
-                        name = "22_\(item)"
-                        print("readWriteTask1 write2 \(name)")
-                        
-                        readWriteTask.write {
-                            name = "22_\(item)"
-                            print("readWriteTask1 write2 \(name)")
-                            
-                            let name1 = readWriteTask.read { name }
-                            print("readWriteTask1 read1 \(name1)")
-                        }
-                    }
-                    
-                    print("readWriteTask1 write1 \(name)")
-                }
-                
-                let name5 = readWriteTask.read { name }
-                print("readWriteTask1 read1 \(name5)")
-            }
+    
+    @UnfairLockValueWrapper
+    var readWriteCount: Int = 0 {
+        didSet {
+            print("readWriteCount \(self.readWriteCount)")
         }
     }
-
+    
+    let concurrentQueue = DispatchQueue(label: "concurrent", attributes: .concurrent)
+    
+    let readWriteTask = ReadWriteTask(label: "test")
+    
+    var name = "0"
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        let count = 100
+        for item in 1...count {
+            self.concurrentQueue.async {
+                _ = self.readWriteTask.read { defer { self.readWriteCount += 1 }; return self.name }
+                
+                self.readWriteTask.write {
+                    self.readWriteCount += 1
+                    
+                    self.name = "\(item)"
+                    
+                    _ = self.readWriteTask.read { defer { self.readWriteCount += 1 }; return self.name }
+                    
+                    self.readWriteTask.asyncWrite {
+                        self.readWriteCount += 1
+                        
+                        self.name = "\(item)"
+                    }
+                    
+                    self.readWriteTask.write {
+                        self.readWriteCount += 1
+                        
+                        self.name = "\(item)"
+                        
+                        _ = self.readWriteTask.read { defer { self.readWriteCount += 1 }; return self.name }
+                    }
+                }
+            }
+            
+            self.concurrentQueue.async {
+                self.readWriteTask.asyncWrite {
+                    self.readWriteCount += 1
+                    
+                    _ = self.readWriteTask.read { defer { self.readWriteCount += 1 }; return self.name }
+                    
+                    self.name = "\(item)"
+                    
+                    self.readWriteTask.write {
+                        self.readWriteCount += 1
+                        
+                        self.name = "\(item)"
+                        
+                        _ = self.readWriteTask.read { defer { self.readWriteCount += 1 }; return self.name }
+                    }
+                }
+                
+            }
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            print("result1 \(self.readWriteTask.read { self.name })")
+            self.readWriteTask.write {
+                self.name = "99999999"
+            }
+            print("result2 \(self.readWriteTask.read { self.name })")
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
+            print("result3 \(self.readWriteTask.read { self.name })")
+        }
+    }
+    
 }
