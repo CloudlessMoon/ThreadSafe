@@ -11,7 +11,7 @@ import Foundation
     
     public var wrappedValue: Value {
         get {
-            self.lock.value
+            return self.lock.value
         }
         set {
             self.lock.value = newValue

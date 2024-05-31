@@ -13,15 +13,15 @@ import Foundation
     
     public var wrappedValue: Value {
         get {
-            self.projectedValue.readWrite.value
+            return self.projectedValue.readWrite.value
         }
         set {
             self.projectedValue.readWrite.value = newValue
         }
     }
     
-    public init(wrappedValue: Value, label: String? = nil) {
-        self.projectedValue = ReadWriteValueProjected(value: wrappedValue, label: label)
+    public init(wrappedValue: Value, taskLabel: String? = nil) {
+        self.projectedValue = ReadWriteValueProjected(value: wrappedValue, taskLabel: taskLabel)
     }
     
 }
@@ -39,9 +39,9 @@ public final class ReadWriteValueProjected<Value> {
     
     fileprivate var readWrite: ReadWriteValue<Value>
     
-    fileprivate init(value: Value, label: String?) {
-        let label = label ?? "com.jiasong.thread-safe.read-write-value"
-        self.readWrite = ReadWriteValue(value, label: label)
+    fileprivate init(value: Value, taskLabel: String?) {
+        let label = taskLabel ?? "com.jiasong.thread-safe.read-write-value"
+        self.readWrite = ReadWriteValue(value, taskLabel: label)
     }
     
 }
