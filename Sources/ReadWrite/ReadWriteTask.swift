@@ -91,7 +91,8 @@ extension ReadWriteTask {
         }
     }
     
-    public func asyncWrite(execute work: @escaping () -> Void) {
+    // See: assertSyncPrecondition
+    private func asyncWrite(execute work: @escaping () -> Void) {
         self.isAsyncWriting = true
         self.dataQueue.async(flags: .barrier) {
             self.isWriting = true
