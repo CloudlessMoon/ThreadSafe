@@ -25,7 +25,7 @@ class ViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        let count = 100
+        let count = 1000
         for item in 1...count {
             self.concurrentQueue.async {
                 _ = self.readWriteTask.read { defer { self.readWriteCount += 1 }; return self.name }
@@ -37,7 +37,7 @@ class ViewController: UIViewController {
                     
                     _ = self.readWriteTask.read { defer { self.readWriteCount += 1 }; return self.name }
                     
-                    self.readWriteTask.asyncWrite {
+                    self.readWriteTask.write {
                         self.readWriteCount += 1
                         
                         self.name = "\(item)"
@@ -54,7 +54,7 @@ class ViewController: UIViewController {
             }
             
             self.concurrentQueue.async {
-                self.readWriteTask.asyncWrite {
+                self.readWriteTask.write {
                     self.readWriteCount += 1
                     
                     _ = self.readWriteTask.read { defer { self.readWriteCount += 1 }; return self.name }

@@ -19,6 +19,12 @@ public final class ReadWriteTask {
     @UnfairLockValueWrapper
     private var isWriting: Bool = false
     
+    @UnfairLockValueWrapper
+    private var isAsyncWriting: Bool = false
+    
+    @UnfairLockValueWrapper
+    private var syncCount: Int = 0
+    
     private var isCurrentQueue: Bool {
         let lhs = self.dataQueue.getSpecific(key: ReadWriteTask.specificKey)
         let rhs = DispatchQueue.getSpecific(key: ReadWriteTask.specificKey)
@@ -47,10 +53,14 @@ extension ReadWriteTask {
             /// 在「write」中嵌套「read」会造成死锁，这里规避掉了死锁
             return try work()
         } else {
+            self.assertSyncPrecondition()
+            
+            self.syncCount += 1
             return try self.dataQueue.sync {
                 self.isReading = true
                 defer {
                     self.isReading = false
+                    self.syncCount -= 1
                 }
                 return try work()
             }
@@ -67,10 +77,14 @@ extension ReadWriteTask {
             /// 在「write」中嵌套「write」会造成死锁，这里规避掉了死锁
             return try work()
         } else {
+            self.assertSyncPrecondition()
+            
+            self.syncCount += 1
             return try self.dataQueue.sync(flags: .barrier) {
                 self.isWriting = true
                 defer {
                     self.isWriting = false
+                    self.syncCount -= 1
                 }
                 return try work()
             }
@@ -78,13 +92,24 @@ extension ReadWriteTask {
     }
     
     public func asyncWrite(execute work: @escaping () -> Void) {
+        self.isAsyncWriting = true
         self.dataQueue.async(flags: .barrier) {
             self.isWriting = true
             defer {
                 self.isWriting = false
+                self.isAsyncWriting = false
             }
             work()
         }
+    }
+    
+}
+
+extension ReadWriteTask {
+    
+    private func assertSyncPrecondition() {
+        // https://stackoverflow.com/questions/76457430/why-is-this-swift-readers-writers-code-causing-deadlock
+        assert(self.syncCount <= 50 || !self.isAsyncWriting, "警告：开启的「sync」过多，又正在执行「asyncWrite」，当线程池耗尽时会导致死锁，请使用「write」")
     }
     
 }
