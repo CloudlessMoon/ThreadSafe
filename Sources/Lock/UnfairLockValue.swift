@@ -21,7 +21,7 @@ public final class UnfairLockValue<Value> {
     
     private let lock: UnfairLock
     
-    public init(value: Value) {
+    public init(_ value: Value) {
         self._value = value
         self.lock = UnfairLock()
     }

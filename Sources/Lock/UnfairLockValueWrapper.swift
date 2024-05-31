@@ -21,7 +21,7 @@ import Foundation
     private let lock: UnfairLockValue<Value>
     
     public init(wrappedValue: Value) {
-        self.lock = UnfairLockValue(value: wrappedValue)
+        self.lock = UnfairLockValue(wrappedValue)
     }
     
 }
