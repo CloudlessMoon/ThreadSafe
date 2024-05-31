@@ -40,8 +40,7 @@ public final class ReadWriteValueProjected<Value> {
     fileprivate var readWrite: ReadWriteValue<Value>
     
     fileprivate init(value: Value, taskLabel: String?) {
-        let label = taskLabel ?? "com.jiasong.thread-safe.read-write-value"
-        self.readWrite = ReadWriteValue(value, taskLabel: label)
+        self.readWrite = ReadWriteValue(value, taskLabel: taskLabel ?? "com.jiasong.thread-safe.read-write-value")
     }
     
 }
