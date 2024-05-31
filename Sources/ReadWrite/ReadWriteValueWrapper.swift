@@ -44,3 +44,11 @@ public final class ReadWriteValueProjected<Value> {
     }
     
 }
+
+extension ReadWriteValueWrapper: CustomStringConvertible {
+    
+    public var description: String {
+        return String(describing: self.projectedValue.readWrite)
+    }
+    
+}

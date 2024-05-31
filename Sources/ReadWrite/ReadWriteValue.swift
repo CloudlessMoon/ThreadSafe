@@ -33,3 +33,11 @@ public final class ReadWriteValue<Value> {
     }
     
 }
+
+extension ReadWriteValue: CustomStringConvertible {
+    
+    public var description: String {
+        return String(describing: self.value)
+    }
+    
+}

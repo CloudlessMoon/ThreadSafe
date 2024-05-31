@@ -25,3 +25,11 @@ import Foundation
     }
     
 }
+
+extension UnfairLockValueWrapper: CustomStringConvertible {
+    
+    public var description: String {
+        return String(describing: self.lock)
+    }
+    
+}

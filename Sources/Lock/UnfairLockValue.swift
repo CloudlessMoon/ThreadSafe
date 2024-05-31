@@ -27,3 +27,11 @@ public final class UnfairLockValue<Value> {
     }
     
 }
+
+extension UnfairLockValue: CustomStringConvertible {
+    
+    public var description: String {
+        return String(describing: self.value)
+    }
+    
+}
