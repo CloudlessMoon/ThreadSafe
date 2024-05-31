@@ -9,35 +9,38 @@ import Foundation
 
 public final class ReadWriteTask {
     
-    private static let specificKey = DispatchSpecificKey<UUID>()
-    
-    private let dataQueue: DispatchQueue
-    
-    @UnfairLockValueWrapper
-    private var isReading: Bool = false
-    
-    @UnfairLockValueWrapper
-    private var isWriting: Bool = false
-    
-    @UnfairLockValueWrapper
-    private var isAsyncWriting: Bool = false
-    
-    @UnfairLockValueWrapper
-    private var syncCount: Int = 0
-    
-    private var isCurrentQueue: Bool {
-        let lhs = self.dataQueue.getSpecific(key: ReadWriteTask.specificKey)
-        let rhs = DispatchQueue.getSpecific(key: ReadWriteTask.specificKey)
-        return lhs == rhs
+    public enum Attributes {
+        case serial
+        case concurrent
     }
     
-    public init(label: String) {
-        self.dataQueue = DispatchQueue(label: label, attributes: .concurrent)
-        self.dataQueue.setSpecific(key: ReadWriteTask.specificKey, value: UUID())
+    public let attributes: Attributes
+    
+    private static let specificKey = DispatchSpecificKey<UUID>()
+    
+    private let adapter: ReadWriteAdapter
+    
+    public init(label: String, attributes: Attributes = .concurrent) {
+        self.attributes = attributes
+        
+        switch self.attributes {
+        case .serial:
+            self.adapter = ReadWriteSerialAdapter(label: label)
+        case .concurrent:
+            self.adapter = ReadWriteConcurrentAdapter(label: label)
+        }
+        
+        self.adapter.queue.setSpecific(key: ReadWriteTask.specificKey, value: UUID())
     }
     
     deinit {
-        self.dataQueue.setSpecific(key: ReadWriteTask.specificKey, value: nil)
+        self.adapter.queue.setSpecific(key: ReadWriteTask.specificKey, value: nil)
+    }
+    
+    private var isCurrentQueue: Bool {
+        let lhs = self.adapter.queue.getSpecific(key: ReadWriteTask.specificKey)
+        let rhs = DispatchQueue.getSpecific(key: ReadWriteTask.specificKey)
+        return lhs == rhs
     }
     
 }
@@ -45,72 +48,115 @@ public final class ReadWriteTask {
 extension ReadWriteTask {
     
     public func read<T>(execute work: () throws -> T) rethrows -> T {
-        let isCurrentQueue = self.isCurrentQueue
-        if self.isReading && isCurrentQueue {
-            assertionFailure("在「read」中嵌套「read」会造成死锁且无法规避，请避免使用")
-            return try work()
-        } else if self.isWriting && isCurrentQueue {
-            /// 在「write」中嵌套「read」会造成死锁，这里规避掉了死锁
-            return try work()
-        } else {
-            self.assertSyncPrecondition()
-            
-            self.syncCount += 1
-            return try self.dataQueue.sync {
-                self.isReading = true
-                defer {
-                    self.isReading = false
-                    self.syncCount -= 1
-                }
-                return try work()
-            }
-        }
+        return try self.adapter.read(in: self.isCurrentQueue, execute: work)
     }
     
     @discardableResult
     public func write<T>(execute work: () throws -> T) rethrows -> T {
-        let isCurrentQueue = self.isCurrentQueue
-        if self.isReading && isCurrentQueue {
-            assertionFailure("在「read」中嵌套「write」会造成死锁且无法规避，请避免使用")
-            return try work()
-        } else if self.isWriting && isCurrentQueue {
-            /// 在「write」中嵌套「write」会造成死锁，这里规避掉了死锁
+        return try self.adapter.write(in: self.isCurrentQueue, execute: work)
+    }
+    
+    public func asyncWrite(execute work: @escaping () -> Void) {
+        self.adapter.asyncWrite(execute: work)
+    }
+    
+}
+
+private protocol ReadWriteAdapter {
+    
+    var queue: DispatchQueue { get }
+    
+    init(label: String)
+    
+    func read<T>(in currentQueue: Bool, execute work: () throws -> T) rethrows -> T
+    func write<T>(in currentQueue: Bool, execute work: () throws -> T) rethrows -> T
+    func asyncWrite(execute work: @escaping () -> Void)
+    
+}
+
+private final class ReadWriteSerialAdapter: ReadWriteAdapter {
+    
+    let queue: DispatchQueue
+    
+    init(label: String) {
+        self.queue = DispatchQueue(label: label)
+    }
+    
+    func read<T>(in currentQueue: Bool, execute work: () throws -> T) rethrows -> T {
+        if currentQueue {
             return try work()
         } else {
-            self.assertSyncPrecondition()
-            
-            self.syncCount += 1
-            return try self.dataQueue.sync(flags: .barrier) {
-                self.isWriting = true
+            return try self.queue.sync(execute: work)
+        }
+    }
+    
+    func write<T>(in currentQueue: Bool, execute work: () throws -> T) rethrows -> T {
+        if currentQueue {
+            return try work()
+        } else {
+            return try self.queue.sync(execute: work)
+        }
+    }
+    
+    func asyncWrite( execute work: @escaping () -> Void) {
+        self.queue.async(execute: work)
+    }
+    
+}
+
+private final class ReadWriteConcurrentAdapter: ReadWriteAdapter {
+    
+    let queue: DispatchQueue
+    
+    @UnfairLockValueWrapper
+    private var isReading: Bool = false
+    
+    @UnfairLockValueWrapper
+    private var isWriting: Bool = false
+    
+    init(label: String) {
+        self.queue = DispatchQueue(label: label, attributes: .concurrent)
+    }
+    
+    func read<T>(in currentQueue: Bool, execute work: () throws -> T) rethrows -> T {
+        if self.isReading && currentQueue {
+            assertionFailure("在「read」中嵌套「read」会造成死锁且无法规避，请避免使用")
+            return try work()
+        } else if self.isWriting && currentQueue {
+            /// 在「write」中嵌套「read」会造成死锁，这里规避掉了死锁
+            return try work()
+        } else {
+            return try self.queue.sync {
+                self.isReading = true
                 defer {
-                    self.isWriting = false
-                    self.syncCount -= 1
+                    self.isReading = false
                 }
                 return try work()
             }
         }
     }
     
-    // See: assertSyncPrecondition
-    private func asyncWrite(execute work: @escaping () -> Void) {
-        self.isAsyncWriting = true
-        self.dataQueue.async(flags: .barrier) {
-            self.isWriting = true
-            defer {
-                self.isWriting = false
-                self.isAsyncWriting = false
+    func write<T>(in currentQueue: Bool, execute work: () throws -> T) rethrows -> T {
+        if self.isReading && currentQueue {
+            assertionFailure("在「read」中嵌套「write」会造成死锁且无法规避，请避免使用")
+            return try work()
+        } else if self.isWriting && currentQueue {
+            /// 在「write」中嵌套「write」会造成死锁，这里规避掉了死锁
+            return try work()
+        } else {
+            return try self.queue.sync(flags: .barrier) {
+                self.isWriting = true
+                defer {
+                    self.isWriting = false
+                }
+                return try work()
             }
-            work()
         }
     }
     
-}
-
-extension ReadWriteTask {
-    
-    private func assertSyncPrecondition() {
+    func asyncWrite(execute work: @escaping () -> Void) {
         // https://stackoverflow.com/questions/76457430/why-is-this-swift-readers-writers-code-causing-deadlock
-        assert(self.syncCount <= 50 || !self.isAsyncWriting, "警告：开启的「sync」过多，又正在执行「asyncWrite」，当线程池耗尽时会导致死锁，请使用「write」")
+        assertionFailure("若开启的「sync」过多，又正在执行「asyncWrite」，当线程池耗尽时会导致死锁，所以此方法不提供实现，请使用「write」")
     }
     
 }

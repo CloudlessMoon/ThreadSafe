@@ -19,7 +19,7 @@ class ViewController: UIViewController {
     
     let concurrentQueue = DispatchQueue(label: "concurrent", attributes: .concurrent)
     
-    let readWriteTask = ReadWriteTask(label: "test")
+    let readWriteTask = ReadWriteTask(label: "test", attributes: .concurrent)
     
     var name = "0"
     

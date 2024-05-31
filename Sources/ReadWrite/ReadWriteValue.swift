@@ -22,11 +22,6 @@ public final class ReadWriteValue<Value> {
     @UnfairLockValueWrapper
     public var task: ReadWriteTask
     
-    public init(_ value: Value, taskLabel: String) {
-        self._value = value
-        self.task = ReadWriteTask(label: taskLabel)
-    }
-    
     public init(_ value: Value, task: ReadWriteTask) {
         self._value = value
         self.task = task

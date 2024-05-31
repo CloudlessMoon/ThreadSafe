@@ -20,8 +20,8 @@ import Foundation
         }
     }
     
-    public init(wrappedValue: Value, taskLabel: String? = nil) {
-        self.projectedValue = ReadWriteValueProjected(value: wrappedValue, taskLabel: taskLabel)
+    public init(wrappedValue: Value, task: ReadWriteTask? = nil) {
+        self.projectedValue = ReadWriteValueProjected(value: wrappedValue, task: task)
     }
     
 }
@@ -39,8 +39,8 @@ public final class ReadWriteValueProjected<Value> {
     
     fileprivate var readWrite: ReadWriteValue<Value>
     
-    fileprivate init(value: Value, taskLabel: String?) {
-        self.readWrite = ReadWriteValue(value, taskLabel: taskLabel ?? "com.jiasong.thread-safe.read-write-value")
+    fileprivate init(value: Value, task: ReadWriteTask? = nil) {
+        self.readWrite = ReadWriteValue(value, task: task ?? ReadWriteTask(label: "com.jiasong.thread-safe.read-write-value"))
     }
     
 }
