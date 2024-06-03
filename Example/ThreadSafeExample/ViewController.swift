@@ -43,7 +43,7 @@ class ViewController: UIViewController {
                         self.name = "\(item)"
                     }
                     
-                    self.readWriteTask.asyncWrite {
+                    self.readWriteTask.write {
                         self.readWriteCount += 1
                         
                         self.name = "\(item)"
