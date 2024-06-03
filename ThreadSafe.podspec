@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
     s.name                  = "ThreadSafe"
-    s.version               = "1.0.3"
+    s.version               = "1.0.4"
     s.summary               = "ThreadSafe"
     s.homepage              = "https://github.com/jiasongs/ThreadSafe"
     s.license               = "MIT"
@@ -14,5 +14,9 @@ Pod::Spec.new do |s|
     s.pod_target_xcconfig   = { 
         'SWIFT_INSTALL_OBJC_HEADER' => 'NO'
     }
-    s.source_files          = "Sources/**/*.{swift}"
+
+    s.default_subspec = "Core"
+    s.subspec "Core" do |ss|
+        ss.source_files = "Sources/Core/**/*.{swift}"
+    end
 end
