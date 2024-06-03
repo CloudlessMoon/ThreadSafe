@@ -98,7 +98,7 @@ private final class ReadWriteSerialAdapter: ReadWriteAdapter {
         }
     }
     
-    func asyncWrite( execute work: @escaping () -> Void) {
+    func asyncWrite(execute work: @escaping () -> Void) {
         self.queue.async(execute: work)
     }
     
@@ -108,6 +108,8 @@ private final class ReadWriteConcurrentAdapter: ReadWriteAdapter {
     
     let queue: DispatchQueue
     
+    private let asyncWriteQueue: DispatchQueue
+    
     @UnfairLockValueWrapper
     private var isReading: Bool = false
     
@@ -116,6 +118,7 @@ private final class ReadWriteConcurrentAdapter: ReadWriteAdapter {
     
     init(label: String) {
         self.queue = DispatchQueue(label: label, attributes: .concurrent)
+        self.asyncWriteQueue = DispatchQueue(label: "\(label).async-write", attributes: .concurrent)
     }
     
     func read<T>(in currentQueue: Bool, execute work: () throws -> T) rethrows -> T {
@@ -156,7 +159,13 @@ private final class ReadWriteConcurrentAdapter: ReadWriteAdapter {
     
     func asyncWrite(execute work: @escaping () -> Void) {
         // https://stackoverflow.com/questions/76457430/why-is-this-swift-readers-writers-code-causing-deadlock
-        assertionFailure("若开启的「sync」过多，又正在执行「asyncWrite」，当线程池耗尽时会导致死锁，所以此方法不提供实现，请使用「write」")
+        // 若开启的「sync」过多，又正在执行「async(flags: .barrier)」，当线程池耗尽时会导致死锁
+        // 这里使用另一个并行队列，通过异步调用、同步write的方式来解决这个问题
+        self.asyncWriteQueue.async {
+            self.write(in: false) {
+                work()
+            }
+        }
     }
     
 }

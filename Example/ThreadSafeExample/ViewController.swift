@@ -43,7 +43,7 @@ class ViewController: UIViewController {
                         self.name = "\(item)"
                     }
                     
-                    self.readWriteTask.write {
+                    self.readWriteTask.asyncWrite {
                         self.readWriteCount += 1
                         
                         self.name = "\(item)"
@@ -54,7 +54,7 @@ class ViewController: UIViewController {
             }
             
             self.concurrentQueue.async {
-                self.readWriteTask.write {
+                self.readWriteTask.asyncWrite {
                     self.readWriteCount += 1
                     
                     _ = self.readWriteTask.read { defer { self.readWriteCount += 1 }; return self.name }
