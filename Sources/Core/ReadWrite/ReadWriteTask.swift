@@ -51,15 +51,33 @@ extension ReadWriteTask {
         return try self.adapter.read(in: self.isCurrentQueue, execute: work)
     }
     
+    public func read<S, T>(state: S, execute work: (S) throws -> T) rethrows -> T {
+        return try self.read {
+            return try work(state)
+        }
+    }
+    
     @discardableResult
     public func write<T>(execute work: () throws -> T) rethrows -> T {
         return try self.adapter.write(in: self.isCurrentQueue, execute: work)
+    }
+    
+    @discardableResult
+    public func write<S, T>(state: S, execute work: (S) throws -> T) rethrows -> T {
+        return try self.write {
+            return try work(state)
+        }
     }
     
     public func asyncWrite(execute work: @escaping () -> Void) {
         self.adapter.asyncWrite(execute: work)
     }
     
+    public func asyncWrite<S>(state: S, execute work: @escaping (S) -> Void) {
+        self.asyncWrite {
+            work(state)
+        }
+    }
 }
 
 private protocol ReadWriteAdapter {
