@@ -101,6 +101,7 @@ extension ReadWriteTask {
     private func isCurrentQueue(with current: [UUID]) -> Bool {
         return self.contextQueue.sync {
             let target = self.adapter.queue.getSpecific(key: ReadWriteTask.specificKey) ?? []
+            assert(target.count > 0)
             return current.contains(where: { target.firstIndex(of: $0) != nil })
         }
     }
@@ -114,6 +115,7 @@ extension ReadWriteTask {
                 }
                 target.append($0)
             }
+            assert(target.count > 0)
             self.adapter.queue.setSpecific(key: ReadWriteTask.specificKey, value: target)
         }
     }
@@ -124,6 +126,7 @@ extension ReadWriteTask {
             target.removeAll {
                 return current.firstIndex(of: $0) != nil && $0 != self.contextValue
             }
+            assert(target.count > 0)
             self.adapter.queue.setSpecific(key: ReadWriteTask.specificKey, value: target)
         }
     }
