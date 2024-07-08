@@ -20,7 +20,7 @@ public final class ReadWriteTask {
     
     private let adapter: ReadWriteTaskAdapter
     
-    private let contextValue = UUID()
+    private let initiallyValue = UUID()
     private let contextQueue = DispatchQueue(label: "com.jiasong.thread-safe.context")
     
     public init(label: String, attributes: Attributes = .concurrent) {
@@ -33,7 +33,7 @@ public final class ReadWriteTask {
             self.adapter = ConcurrentTaskAdapter(label: label)
         }
         
-        self.adapter.queue.setSpecific(key: ReadWriteTask.specificKey, value: [self.contextValue])
+        self.adapter.queue.setSpecific(key: ReadWriteTask.specificKey, value: [self.initiallyValue])
     }
     
     deinit {
@@ -124,7 +124,7 @@ extension ReadWriteTask {
         self.contextQueue.sync {
             var target = self.adapter.queue.getSpecific(key: ReadWriteTask.specificKey) ?? []
             target.removeAll {
-                return current.firstIndex(of: $0) != nil && $0 != self.contextValue
+                return current.firstIndex(of: $0) != nil && $0 != self.initiallyValue
             }
             assert(target.count > 0)
             self.adapter.queue.setSpecific(key: ReadWriteTask.specificKey, value: target)
