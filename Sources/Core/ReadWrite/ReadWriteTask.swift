@@ -18,7 +18,7 @@ public final class ReadWriteTask {
     
     private static let specificKey = DispatchSpecificKey<[UUID]>()
     
-    private let adapter: ReadWriteAdapter
+    private let adapter: ReadWriteTaskAdapter
     
     private let contextValue = UUID()
     private let contextQueue = DispatchQueue(label: "com.jiasong.thread-safe.context")
@@ -28,9 +28,9 @@ public final class ReadWriteTask {
         
         switch self.attributes {
         case .serial:
-            self.adapter = ReadWriteSerialAdapter(label: label)
+            self.adapter = SerialTaskAdapter(label: label)
         case .concurrent:
-            self.adapter = ReadWriteConcurrentAdapter(label: label)
+            self.adapter = ConcurrentTaskAdapter(label: label)
         }
         
         self.adapter.queue.setSpecific(key: ReadWriteTask.specificKey, value: [self.contextValue])
@@ -130,11 +130,9 @@ extension ReadWriteTask {
     
 }
 
-private protocol ReadWriteAdapter {
+private protocol ReadWriteTaskAdapter {
     
     var queue: DispatchQueue { get }
-    
-    init(label: String)
     
     func read<T>(in currentQueue: Bool, execute work: () throws -> T) rethrows -> T
     func write<T>(in currentQueue: Bool, execute work: () throws -> T) rethrows -> T
@@ -142,7 +140,7 @@ private protocol ReadWriteAdapter {
     
 }
 
-private final class ReadWriteSerialAdapter: ReadWriteAdapter {
+private final class SerialTaskAdapter: ReadWriteTaskAdapter {
     
     let queue: DispatchQueue
     
@@ -172,7 +170,7 @@ private final class ReadWriteSerialAdapter: ReadWriteAdapter {
     
 }
 
-private final class ReadWriteConcurrentAdapter: ReadWriteAdapter {
+private final class ConcurrentTaskAdapter: ReadWriteTaskAdapter {
     
     let queue: DispatchQueue
     
