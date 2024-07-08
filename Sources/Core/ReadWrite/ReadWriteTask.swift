@@ -45,11 +45,11 @@ public final class ReadWriteTask {
 extension ReadWriteTask {
     
     public func read<T>(execute work: () throws -> T) rethrows -> T {
-        let current = self.currentContextValue
+        let current = self.currentContext
         return try self.adapter.read(in: self.isCurrentQueue(with: current)) {
-            self.setContextValue(with: current)
+            self.setContext(with: current)
             defer {
-                self.removeContextValue(with: current)
+                self.removeContext(with: current)
             }
             return try work()
         }
@@ -63,11 +63,11 @@ extension ReadWriteTask {
     
     @discardableResult
     public func write<T>(execute work: () throws -> T) rethrows -> T {
-        let current = self.currentContextValue
+        let current = self.currentContext
         return try self.adapter.write(in: self.isCurrentQueue(with: current)) {
-            self.setContextValue(with: current)
+            self.setContext(with: current)
             defer {
-                self.removeContextValue(with: current)
+                self.removeContext(with: current)
             }
             return try work()
         }
@@ -94,7 +94,7 @@ extension ReadWriteTask {
 
 extension ReadWriteTask {
     
-    private var currentContextValue: [UUID] {
+    private var currentContext: [UUID] {
         return DispatchQueue.getSpecific(key: ReadWriteTask.specificKey) ?? []
     }
     
@@ -105,7 +105,7 @@ extension ReadWriteTask {
         }
     }
     
-    private func setContextValue(with current: [UUID]) {
+    private func setContext(with current: [UUID]) {
         self.contextQueue.sync {
             var target = self.adapter.queue.getSpecific(key: ReadWriteTask.specificKey) ?? []
             current.forEach {
@@ -118,7 +118,7 @@ extension ReadWriteTask {
         }
     }
     
-    private func removeContextValue(with current: [UUID]) {
+    private func removeContext(with current: [UUID]) {
         self.contextQueue.sync {
             var target = self.adapter.queue.getSpecific(key: ReadWriteTask.specificKey) ?? []
             target.removeAll {
