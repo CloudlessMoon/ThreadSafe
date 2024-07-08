@@ -20,6 +20,7 @@ class ViewController: UIViewController {
     let concurrentQueue = DispatchQueue(label: "concurrent", attributes: .concurrent)
     
     let readWriteTask = ReadWriteTask(label: "test", attributes: .concurrent)
+    let otherReadWriteTask = ReadWriteTask(label: "other-test", attributes: .concurrent)
     
     var name = "0"
     
@@ -43,6 +44,19 @@ class ViewController: UIViewController {
                         self.name = "\(item)"
                     }
                     
+                    self.otherReadWriteTask.write {
+                        self.readWriteTask.asyncWrite {
+                            self.readWriteCount += 1
+                            
+                            self.name = "\(item)"
+                        }
+                        self.readWriteTask.write {
+                            self.readWriteCount += 1
+                            
+                            self.name = "\(item)"
+                        }
+                    }
+                    
                     self.readWriteTask.write {
                         self.readWriteCount += 1
                         
@@ -60,6 +74,19 @@ class ViewController: UIViewController {
                     _ = self.readWriteTask.read { defer { self.readWriteCount += 1 }; return self.name }
                     
                     self.name = "\(item)"
+                    
+                    self.otherReadWriteTask.write {
+                        self.readWriteTask.asyncWrite {
+                            self.readWriteCount += 1
+                            
+                            self.name = "\(item)"
+                        }
+                        self.readWriteTask.write {
+                            self.readWriteCount += 1
+                            
+                            self.name = "\(item)"
+                        }
+                    }
                     
                     self.readWriteTask.write {
                         self.readWriteCount += 1
@@ -79,10 +106,6 @@ class ViewController: UIViewController {
                 self.name = "99999999"
             }
             print("result2 \(self.readWriteTask.read { self.name })")
-        }
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
-            print("result3 \(self.readWriteTask.read { self.name })")
         }
     }
     
