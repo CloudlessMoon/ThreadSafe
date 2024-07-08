@@ -16,9 +16,12 @@ public final class ReadWriteTask {
     
     public let attributes: Attributes
     
-    private static let specificKey = DispatchSpecificKey<UUID>()
+    private static let specificKey = DispatchSpecificKey<[UUID]>()
     
     private let adapter: ReadWriteAdapter
+    
+    private let contextValue = UUID()
+    private let contextQueue = DispatchQueue(label: "com.jiasong.thread-safe.context")
     
     public init(label: String, attributes: Attributes = .concurrent) {
         self.attributes = attributes
@@ -30,17 +33,11 @@ public final class ReadWriteTask {
             self.adapter = ReadWriteConcurrentAdapter(label: label)
         }
         
-        self.adapter.queue.setSpecific(key: ReadWriteTask.specificKey, value: UUID())
+        self.adapter.queue.setSpecific(key: ReadWriteTask.specificKey, value: [self.contextValue])
     }
     
     deinit {
         self.adapter.queue.setSpecific(key: ReadWriteTask.specificKey, value: nil)
-    }
-    
-    private var isCurrentQueue: Bool {
-        let lhs = self.adapter.queue.getSpecific(key: ReadWriteTask.specificKey)
-        let rhs = DispatchQueue.getSpecific(key: ReadWriteTask.specificKey)
-        return lhs == rhs
     }
     
 }
@@ -48,7 +45,14 @@ public final class ReadWriteTask {
 extension ReadWriteTask {
     
     public func read<T>(execute work: () throws -> T) rethrows -> T {
-        return try self.adapter.read(in: self.isCurrentQueue, execute: work)
+        let current = self.currentContextValue
+        return try self.adapter.read(in: self.isCurrentQueue(with: current)) {
+            self.setContextValue(with: current)
+            defer {
+                self.removeContextValue(with: current)
+            }
+            return try work()
+        }
     }
     
     public func read<S, T>(state: S, execute work: (S) throws -> T) rethrows -> T {
@@ -59,7 +63,14 @@ extension ReadWriteTask {
     
     @discardableResult
     public func write<T>(execute work: () throws -> T) rethrows -> T {
-        return try self.adapter.write(in: self.isCurrentQueue, execute: work)
+        let current = self.currentContextValue
+        return try self.adapter.write(in: self.isCurrentQueue(with: current)) {
+            self.setContextValue(with: current)
+            defer {
+                self.removeContextValue(with: current)
+            }
+            return try work()
+        }
     }
     
     @discardableResult
@@ -78,6 +89,45 @@ extension ReadWriteTask {
             work(state)
         }
     }
+    
+}
+
+extension ReadWriteTask {
+    
+    private var currentContextValue: [UUID] {
+        return DispatchQueue.getSpecific(key: ReadWriteTask.specificKey) ?? []
+    }
+    
+    private func isCurrentQueue(with current: [UUID]) -> Bool {
+        return self.contextQueue.sync {
+            let target = self.adapter.queue.getSpecific(key: ReadWriteTask.specificKey) ?? []
+            return current.contains(where: { target.firstIndex(of: $0) != nil })
+        }
+    }
+    
+    private func setContextValue(with current: [UUID]) {
+        self.contextQueue.sync {
+            var target = self.adapter.queue.getSpecific(key: ReadWriteTask.specificKey) ?? []
+            current.forEach {
+                guard target.firstIndex(of: $0) == nil else {
+                    return
+                }
+                target.append($0)
+            }
+            self.adapter.queue.setSpecific(key: ReadWriteTask.specificKey, value: target)
+        }
+    }
+    
+    private func removeContextValue(with current: [UUID]) {
+        self.contextQueue.sync {
+            var target = self.adapter.queue.getSpecific(key: ReadWriteTask.specificKey) ?? []
+            target.removeAll {
+                return current.firstIndex(of: $0) != nil && $0 != self.contextValue
+            }
+            self.adapter.queue.setSpecific(key: ReadWriteTask.specificKey, value: target)
+        }
+    }
+    
 }
 
 private protocol ReadWriteAdapter {
