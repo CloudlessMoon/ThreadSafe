@@ -45,6 +45,8 @@ class ViewController: UIViewController {
                     }
                     
                     self.otherReadWriteTask.write {
+                        _ = self.readWriteTask.read { defer { self.readWriteCount += 1 }; return self.name }
+                        
                         self.readWriteTask.asyncWrite {
                             self.readWriteCount += 1
                             
@@ -61,8 +63,12 @@ class ViewController: UIViewController {
                             
                             self.name = "\(item)"
                             
+                            _ = self.readWriteTask.read { defer { self.readWriteCount += 1 }; return self.name }
+                            
                             self.readWriteTask.write {
                                 self.readWriteCount += 1
+                                
+                                _ = self.readWriteTask.read { defer { self.readWriteCount += 1 }; return self.name }
                                 
                                 self.name = "\(item)"
                             }
@@ -72,14 +78,22 @@ class ViewController: UIViewController {
                     self.readWriteTask.write {
                         self.readWriteCount += 1
                         
+                        _ = self.readWriteTask.read { defer { self.readWriteCount += 1 }; return self.name }
+                        
                         self.name = "\(item)"
                         
                         _ = self.readWriteTask.read { defer { self.readWriteCount += 1 }; return self.name }
                     }
                 }
+                
+                _ = self.readWriteTask.read { defer { self.readWriteCount += 1 }; return self.name }
             }
             
             self.concurrentQueue.async {
+                _ = self.readWriteTask.read { defer { self.readWriteCount += 1 }; return self.name }
+                
+                _ = self.readWriteTask.read { defer { self.readWriteCount += 1 }; return self.name }
+                
                 self.readWriteTask.asyncWrite {
                     self.readWriteCount += 1
                     
@@ -91,12 +105,16 @@ class ViewController: UIViewController {
                         self.readWriteTask.asyncWrite {
                             self.readWriteCount += 1
                             
+                            _ = self.readWriteTask.read { defer { self.readWriteCount += 1 }; return self.name }
+                            
                             self.name = "\(item)"
                         }
                         self.readWriteTask.write {
                             self.readWriteCount += 1
                             
                             self.name = "\(item)"
+                            
+                            _ = self.readWriteTask.read { defer { self.readWriteCount += 1 }; return self.name }
                         }
                     }
                     
