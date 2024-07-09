@@ -20,8 +20,8 @@ public final class ReadWriteTask {
     
     private let adapter: ReadWriteTaskAdapter
     
-    private let initiallyValue = UUID()
-    private let contextQueue = DispatchQueue(label: "com.jiasong.thread-safe.context")
+    private let initiallyContext = UUID()
+    private let contextLock = UnfairLock()
     
     public init(label: String, attributes: Attributes = .concurrent) {
         self.attributes = attributes
@@ -33,11 +33,11 @@ public final class ReadWriteTask {
             self.adapter = ConcurrentTaskAdapter(label: label)
         }
         
-        self.adapter.queue.setSpecific(key: ReadWriteTask.specificKey, value: [self.initiallyValue])
+        self.adapter.queue.setSpecific(key: Self.specificKey, value: [self.initiallyContext])
     }
     
     deinit {
-        self.adapter.queue.setSpecific(key: ReadWriteTask.specificKey, value: nil)
+        self.adapter.queue.setSpecific(key: Self.specificKey, value: nil)
     }
     
 }
@@ -45,13 +45,18 @@ public final class ReadWriteTask {
 extension ReadWriteTask {
     
     public func read<T>(execute work: () throws -> T) rethrows -> T {
-        let current = self.currentContext
-        return try self.adapter.read(in: self.isCurrentQueue(with: current)) {
-            self.setContext(with: current)
-            defer {
-                self.removeContext(with: current)
+        let currentContext = self.getCurrentContext()
+        let isInQueue = self.isInQueue(with: currentContext)
+        return try self.adapter.read(inQueue: isInQueue) {
+            if isInQueue {
+                return try work()
+            } else {
+                self.setContext(with: currentContext)
+                defer {
+                    self.removeContext(with: currentContext)
+                }
+                return try work()
             }
-            return try work()
         }
     }
     
@@ -63,13 +68,18 @@ extension ReadWriteTask {
     
     @discardableResult
     public func write<T>(execute work: () throws -> T) rethrows -> T {
-        let current = self.currentContext
-        return try self.adapter.write(in: self.isCurrentQueue(with: current)) {
-            self.setContext(with: current)
-            defer {
-                self.removeContext(with: current)
+        let currentContext = self.getCurrentContext()
+        let isInQueue = self.isInQueue(with: currentContext)
+        return try self.adapter.write(inQueue: isInQueue) {
+            if isInQueue {
+                return try work()
+            } else {
+                self.setContext(with: currentContext)
+                defer {
+                    self.removeContext(with: currentContext)
+                }
+                return try work()
             }
-            return try work()
         }
     }
     
@@ -94,40 +104,40 @@ extension ReadWriteTask {
 
 extension ReadWriteTask {
     
-    private var currentContext: [UUID] {
-        return DispatchQueue.getSpecific(key: ReadWriteTask.specificKey) ?? []
+    private func getCurrentContext() -> [UUID] {
+        return DispatchQueue.getSpecific(key: Self.specificKey) ?? []
     }
     
-    private func isCurrentQueue(with current: [UUID]) -> Bool {
-        return self.contextQueue.sync {
-            let target = self.adapter.queue.getSpecific(key: ReadWriteTask.specificKey) ?? []
-            assert(target.count > 0)
-            return current.contains(where: { target.firstIndex(of: $0) != nil })
+    private func isInQueue(with currentContext: [UUID]) -> Bool {
+        return self.contextLock.withLock {
+            let context = self.adapter.queue.getSpecific(key: Self.specificKey) ?? []
+            assert(context.count > 0)
+            return currentContext.contains(where: { context.firstIndex(of: $0) != nil })
         }
     }
     
-    private func setContext(with current: [UUID]) {
-        self.contextQueue.sync {
-            var target = self.adapter.queue.getSpecific(key: ReadWriteTask.specificKey) ?? []
-            current.forEach {
-                guard target.firstIndex(of: $0) == nil else {
+    private func setContext(with currentContext: [UUID]) {
+        self.contextLock.withLock {
+            var context = self.adapter.queue.getSpecific(key: Self.specificKey) ?? []
+            currentContext.forEach {
+                guard context.firstIndex(of: $0) == nil else {
                     return
                 }
-                target.append($0)
+                context.append($0)
             }
-            assert(target.count > 0)
-            self.adapter.queue.setSpecific(key: ReadWriteTask.specificKey, value: target)
+            assert(context.count > 0)
+            self.adapter.queue.setSpecific(key: Self.specificKey, value: context)
         }
     }
     
-    private func removeContext(with current: [UUID]) {
-        self.contextQueue.sync {
-            var target = self.adapter.queue.getSpecific(key: ReadWriteTask.specificKey) ?? []
-            target.removeAll {
-                return current.firstIndex(of: $0) != nil && $0 != self.initiallyValue
+    private func removeContext(with currentContext: [UUID]) {
+        self.contextLock.withLock {
+            var context = self.adapter.queue.getSpecific(key: Self.specificKey) ?? []
+            context.removeAll {
+                return currentContext.firstIndex(of: $0) != nil && $0 != self.initiallyContext
             }
-            assert(target.count > 0)
-            self.adapter.queue.setSpecific(key: ReadWriteTask.specificKey, value: target)
+            assert(context.count > 0)
+            self.adapter.queue.setSpecific(key: Self.specificKey, value: context)
         }
     }
     
@@ -137,8 +147,8 @@ private protocol ReadWriteTaskAdapter {
     
     var queue: DispatchQueue { get }
     
-    func read<T>(in currentQueue: Bool, execute work: () throws -> T) rethrows -> T
-    func write<T>(in currentQueue: Bool, execute work: () throws -> T) rethrows -> T
+    func read<T>(inQueue isInQueue: Bool, execute work: () throws -> T) rethrows -> T
+    func write<T>(inQueue isInQueue: Bool, execute work: () throws -> T) rethrows -> T
     func asyncWrite(execute work: @escaping () -> Void)
     
 }
@@ -151,16 +161,16 @@ private final class SerialTaskAdapter: ReadWriteTaskAdapter {
         self.queue = DispatchQueue(label: label)
     }
     
-    func read<T>(in currentQueue: Bool, execute work: () throws -> T) rethrows -> T {
-        if currentQueue {
+    func read<T>(inQueue isInQueue: Bool, execute work: () throws -> T) rethrows -> T {
+        if isInQueue {
             return try work()
         } else {
             return try self.queue.sync(execute: work)
         }
     }
     
-    func write<T>(in currentQueue: Bool, execute work: () throws -> T) rethrows -> T {
-        if currentQueue {
+    func write<T>(inQueue isInQueue: Bool, execute work: () throws -> T) rethrows -> T {
+        if isInQueue {
             return try work()
         } else {
             return try self.queue.sync(execute: work)
@@ -187,14 +197,14 @@ private final class ConcurrentTaskAdapter: ReadWriteTaskAdapter {
     
     init(label: String) {
         self.queue = DispatchQueue(label: label, attributes: .concurrent)
-        self.asyncWriteQueue = DispatchQueue(label: "\(label).async-write")
+        self.asyncWriteQueue = DispatchQueue(label: "\(self.queue.label).async-write")
     }
     
-    func read<T>(in currentQueue: Bool, execute work: () throws -> T) rethrows -> T {
-        if self.isReading && currentQueue {
+    func read<T>(inQueue isInQueue: Bool, execute work: () throws -> T) rethrows -> T {
+        if self.isReading && isInQueue {
             assertionFailure("在「read」中嵌套「read」会造成死锁且无法规避，请避免使用")
             return try work()
-        } else if self.isWriting && currentQueue {
+        } else if self.isWriting && isInQueue {
             /// 在「write」中嵌套「read」会造成死锁，这里规避掉了死锁
             return try work()
         } else {
@@ -208,11 +218,11 @@ private final class ConcurrentTaskAdapter: ReadWriteTaskAdapter {
         }
     }
     
-    func write<T>(in currentQueue: Bool, execute work: () throws -> T) rethrows -> T {
-        if self.isReading && currentQueue {
+    func write<T>(inQueue isInQueue: Bool, execute work: () throws -> T) rethrows -> T {
+        if self.isReading && isInQueue {
             assertionFailure("在「read」中嵌套「write」会造成死锁且无法规避，请避免使用")
             return try work()
-        } else if self.isWriting && currentQueue {
+        } else if self.isWriting && isInQueue {
             /// 在「write」中嵌套「write」会造成死锁，这里规避掉了死锁
             return try work()
         } else {
@@ -231,7 +241,7 @@ private final class ConcurrentTaskAdapter: ReadWriteTaskAdapter {
         // 若开启的「sync」过多，又正在执行「async(flags: .barrier)」，当线程池耗尽时会导致死锁
         // 这里使用另一个串行队列，通过异步调用、同步write的方式来解决这个问题，同时串行队列会保证调用顺序
         self.asyncWriteQueue.async {
-            self.write(in: false) {
+            self.write(inQueue: false) {
                 work()
             }
         }

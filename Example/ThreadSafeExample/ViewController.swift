@@ -49,11 +49,23 @@ class ViewController: UIViewController {
                             self.readWriteCount += 1
                             
                             self.name = "\(item)"
+                            
+                            self.readWriteTask.write {
+                                self.readWriteCount += 1
+                                
+                                self.name = "\(item)"
+                            }
                         }
                         self.readWriteTask.write {
                             self.readWriteCount += 1
                             
                             self.name = "\(item)"
+                            
+                            self.readWriteTask.write {
+                                self.readWriteCount += 1
+                                
+                                self.name = "\(item)"
+                            }
                         }
                     }
                     
@@ -100,7 +112,7 @@ class ViewController: UIViewController {
             }
         }
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
             print("result1 \(self.readWriteTask.read { self.name })")
             self.readWriteTask.write {
                 self.name = "99999999"
