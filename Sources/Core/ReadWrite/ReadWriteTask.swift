@@ -16,11 +16,11 @@ public final class ReadWriteTask {
     
     public let attributes: Attributes
     
-    private static let specificKey = DispatchSpecificKey<[UUID]>()
+    private static let specificKey = DispatchSpecificKey<[AtomicInt]>()
     
     private let adapter: ReadWriteTaskAdapter
     
-    private let initiallyContext = UUID()
+    private let initiallyContext = AtomicInt()
     private let contextLock = UnfairLock()
     
     public init(label: String, attributes: Attributes = .concurrent) {
@@ -104,11 +104,11 @@ extension ReadWriteTask {
 
 extension ReadWriteTask {
     
-    private func getCurrentContext() -> [UUID] {
+    private func getCurrentContext() -> [AtomicInt] {
         return DispatchQueue.getSpecific(key: Self.specificKey) ?? []
     }
     
-    private func isInQueue(with currentContext: [UUID]) -> Bool {
+    private func isInQueue(with currentContext: [AtomicInt]) -> Bool {
         return self.contextLock.withLock {
             let context = self.adapter.queue.getSpecific(key: Self.specificKey) ?? []
             assert(context.count > 0)
@@ -116,9 +116,10 @@ extension ReadWriteTask {
         }
     }
     
-    private func setContext(with currentContext: [UUID]) {
+    private func setContext(with currentContext: [AtomicInt]) {
         self.contextLock.withLock {
-            var context = self.adapter.queue.getSpecific(key: Self.specificKey) ?? []
+            let previous = self.adapter.queue.getSpecific(key: Self.specificKey) ?? []
+            var context = previous
             currentContext.forEach {
                 guard context.firstIndex(of: $0) == nil else {
                     return
@@ -126,17 +127,24 @@ extension ReadWriteTask {
                 context.append($0)
             }
             assert(context.count > 0)
+            guard context.count != previous.count else {
+                return
+            }
             self.adapter.queue.setSpecific(key: Self.specificKey, value: context)
         }
     }
     
-    private func removeContext(with currentContext: [UUID]) {
+    private func removeContext(with currentContext: [AtomicInt]) {
         self.contextLock.withLock {
-            var context = self.adapter.queue.getSpecific(key: Self.specificKey) ?? []
+            let previous = self.adapter.queue.getSpecific(key: Self.specificKey) ?? []
+            var context = previous
             context.removeAll {
-                return currentContext.firstIndex(of: $0) != nil && $0 != self.initiallyContext
+                return $0 != self.initiallyContext && currentContext.firstIndex(of: $0) != nil
             }
             assert(context.count > 0)
+            guard context.count != previous.count else {
+                return
+            }
             self.adapter.queue.setSpecific(key: Self.specificKey, value: context)
         }
     }
@@ -247,4 +255,20 @@ private final class ConcurrentTaskAdapter: ReadWriteTaskAdapter {
         }
     }
     
+}
+
+private struct AtomicInt: Equatable {
+    
+    private static let lock = UnfairLock()
+    private static var current: Int = 1
+    
+    private let value: Int
+    
+    fileprivate init() {
+        self.value = AtomicInt.lock.withLock {
+            let value = AtomicInt.current
+            AtomicInt.current = value + 1
+            return value
+        }
+    }
 }

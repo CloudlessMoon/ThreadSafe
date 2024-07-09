@@ -9,9 +9,9 @@ import Foundation
 
 fileprivate extension DispatchQueue {
     
-    static let mainKey: DispatchSpecificKey<UUID> = {
-        let key = DispatchSpecificKey<UUID>()
-        DispatchQueue.main.setSpecific(key: key, value: UUID())
+    static let mainKey: DispatchSpecificKey<Int> = {
+        let key = DispatchSpecificKey<Int>()
+        DispatchQueue.main.setSpecific(key: key, value: 1)
         return key
     }()
     
