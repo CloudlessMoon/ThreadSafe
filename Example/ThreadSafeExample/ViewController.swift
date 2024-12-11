@@ -15,7 +15,7 @@ class ViewController: UIViewController {
     private let readWriteTask = ReadWriteTask(label: "test", attributes: .concurrent)
     private let otherReadWriteTask = ReadWriteTask(label: "other-test", attributes: .concurrent)
     
-    private let mainThreadTask = MainThreadTask()
+    private let mainThreadTask = MainThreadTask.default
     
     @UnfairLockValueWrapper
     private var readWriteCount: Int = 0 {

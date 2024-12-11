@@ -9,6 +9,8 @@ import Foundation
 
 public final class MainThreadTask {
     
+    public static let `default` = MainThreadTask()
+    
     public init() {
         
     }

@@ -19,7 +19,7 @@ public final class MainThreadValue<Value> {
         }
     }
     
-    private let task = MainThreadTask()
+    private let task = MainThreadTask.default
     
     public init(_ value: Value) {
         self._value = value

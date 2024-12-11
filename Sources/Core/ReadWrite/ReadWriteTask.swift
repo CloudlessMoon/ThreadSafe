@@ -14,6 +14,8 @@ public final class ReadWriteTask {
         case concurrent
     }
     
+    public let label: String
+    
     public let attributes: Attributes
     
     private static let specificKey = DispatchSpecificKey<[AtomicInt]>()
@@ -24,6 +26,7 @@ public final class ReadWriteTask {
     private let contextLock = UnfairLock()
     
     public init(label: String, attributes: Attributes = .concurrent) {
+        self.label = label
         self.attributes = attributes
         
         switch self.attributes {
