@@ -6,7 +6,7 @@ target 'ThreadSafeExample' do
 
   pod "ThreadSafe", :path => ".."
   
-  pod 'SwiftLint', '~> 0.55.1', :configurations => ['Debug']
+  pod 'SwiftLint', '~> 0.57.1', :configurations => ['Debug']
 
   target 'ThreadSafeExampleTests' do
     inherit! :search_paths
