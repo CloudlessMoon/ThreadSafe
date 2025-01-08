@@ -37,6 +37,14 @@ extension MainThreadTask {
         }
     }
     
+    public func currentOrAsync(execute work: @escaping () -> Void) {
+        if Thread.isMainThread {
+            self.sync(execute: work)
+        } else {
+            self.async(execute: work)
+        }
+    }
+    
     public func async(execute work: @escaping () -> Void) {
         DispatchQueue.main.async {
             work()
