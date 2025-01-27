@@ -21,7 +21,7 @@ extension MainThreadTask {
     
     @discardableResult
     public func sync<T>(execute work: () throws -> T) rethrows -> T {
-        if Thread.isMainThread {
+        if Thread.isMainThread || DispatchQueue.threadSafe.isMain {
             return try work()
         } else {
             DispatchQueue.threadSafe.assertNotOnMainQueue()
