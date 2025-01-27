@@ -39,10 +39,6 @@ public final class ReadWriteTask {
         self.adapter.queue.setSpecific(key: Self.specificKey, value: [self.initiallyContext])
     }
     
-    deinit {
-        self.adapter.queue.setSpecific(key: Self.specificKey, value: nil)
-    }
-    
 }
 
 extension ReadWriteTask {
