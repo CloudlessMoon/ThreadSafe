@@ -20,7 +20,7 @@ import Foundation
         }
     }
     
-    public init(wrappedValue: Value, task: ReadWriteTask = .init(label: "com.jiasong.thread-safe.read-write-value-wrapper")) {
+    public init(wrappedValue: Value, task: ReadWriteTask = .init(label: "com.cloudlessmoon.thread-safe.read-write-value-wrapper")) {
         self.projectedValue = ReadWriteValueProjected(value: wrappedValue, task: task)
     }
     

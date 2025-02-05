@@ -22,7 +22,7 @@ public final class ReadWriteValue<Value> {
     @UnfairLockValueWrapper
     public var task: ReadWriteTask
     
-    public init(_ value: Value, task: ReadWriteTask = .init(label: "com.jiasong.thread-safe.read-write-value")) {
+    public init(_ value: Value, task: ReadWriteTask = .init(label: "com.cloudlessmoon.thread-safe.read-write-value")) {
         self._value = value
         self.task = task
     }
