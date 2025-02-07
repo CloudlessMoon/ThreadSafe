@@ -259,9 +259,9 @@ private final class ConcurrentTaskAdapter: ReadWriteTaskAdapter {
 private struct AtomicInt: Equatable {
     
     private static let lock = UnfairLock()
-    private static var current: Int = 1
+    private static var current: UInt = 1
     
-    private let value: Int
+    private let value: UInt
     
     fileprivate init() {
         self.value = AtomicInt.lock.withLock {

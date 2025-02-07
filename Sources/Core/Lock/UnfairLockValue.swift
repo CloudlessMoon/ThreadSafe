@@ -12,10 +12,14 @@ public final class UnfairLockValue<Value> {
     private var _value: Value
     public var value: Value {
         get {
-            return self.lock.withLock { self._value }
+            return self.lock.withLock {
+                return self._value
+            }
         }
         set {
-            self.lock.withLock { self._value = newValue }
+            self.lock.withLock {
+                self._value = newValue
+            }
         }
     }
     

@@ -12,10 +12,14 @@ public final class MainThreadValue<Value> {
     private var _value: Value
     public var value: Value {
         get {
-            return self.task.sync { self._value }
+            return self.task.sync {
+                return self._value
+            }
         }
         set {
-            self.task.sync { self._value = newValue }
+            self.task.sync {
+                self._value = newValue
+            }
         }
     }
     

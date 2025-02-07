@@ -9,10 +9,12 @@ import Foundation
 
 public final class MainThreadTask {
     
-    public static let `default` = MainThreadTask()
+    public static let `default` = MainThreadTask(label: "Default")
     
-    public init() {
-        
+    public let label: String
+    
+    public init(label: String) {
+        self.label = label
     }
     
 }
