@@ -36,6 +36,12 @@ public final class ReadWriteTask {
             self.adapter = ConcurrentTaskAdapter(label: label)
         }
         
+        // 如果由外部的queue建立时需要先获取context，且需要加锁处理
+        // self.adapter.queue.withLock {
+        //     var context = self.adapter.queue.getSpecific(key: Self.specificKey) ?? []
+        //     context.append(self.initiallyContext)
+        //     self.adapter.queue.setSpecific(key: Self.specificKey, value: context)
+        // }
         self.adapter.queue.setSpecific(key: Self.specificKey, value: [self.initiallyContext])
     }
     
