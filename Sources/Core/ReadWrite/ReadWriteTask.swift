@@ -36,10 +36,6 @@ public final class ReadWriteTask {
     
     public let attributes: Attributes
     
-    public var queue: DispatchQueue {
-        return self.adapter.queue
-    }
-    
     private static let specificKey = DispatchSpecificKey<[AtomicInt]>()
     
     private let adapter: ReadWriteTaskAdapter
