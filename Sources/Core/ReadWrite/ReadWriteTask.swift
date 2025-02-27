@@ -14,6 +14,24 @@ public final class ReadWriteTask {
         case concurrent
     }
     
+    public final class AsyncToken {
+        
+        public var isCancelled: Bool {
+            return self.workItem.isCancelled
+        }
+        
+        public func cancel() {
+            self.workItem.cancel()
+        }
+        
+        private let workItem: DispatchWorkItem
+        
+        internal init(workItem: DispatchWorkItem) {
+            self.workItem = workItem
+        }
+        
+    }
+    
     public let label: String
     
     public let attributes: Attributes
@@ -40,12 +58,6 @@ public final class ReadWriteTask {
             self.adapter = ConcurrentTaskAdapter(label: label)
         }
         
-        // 如果由外部的queue建立时需要先获取context，且需要加锁处理
-        // self.adapter.queue.withLock {
-        //     var context = self.adapter.queue.getSpecific(key: Self.specificKey) ?? []
-        //     context.append(self.initiallyContext)
-        //     self.adapter.queue.setSpecific(key: Self.specificKey, value: context)
-        // }
         self.adapter.queue.setSpecific(key: Self.specificKey, value: [self.initiallyContext])
     }
     
@@ -99,12 +111,26 @@ extension ReadWriteTask {
         }
     }
     
-    public func asyncWrite(execute work: @escaping () -> Void) {
-        self.adapter.asyncWrite(execute: work)
+    @discardableResult
+    public func asyncWrite(execute work: @escaping () -> Void) -> AsyncToken {
+        return self.adapter.asyncWrite(execute: work)
     }
     
-    public func asyncWrite<S>(state: S, execute work: @escaping (S) -> Void) {
-        self.asyncWrite {
+    @discardableResult
+    public func asyncWrite<S>(state: S, execute work: @escaping (S) -> Void) -> AsyncToken {
+        return self.asyncWrite {
+            work(state)
+        }
+    }
+    
+    @discardableResult
+    public func asyncWriteAfter(deadline: DispatchTime, execute work: @escaping () -> Void) -> AsyncToken {
+        return self.adapter.asyncWriteAfter(deadline: deadline, execute: work)
+    }
+    
+    @discardableResult
+    public func asyncWriteAfter<S>(state: S, deadline: DispatchTime, execute work: @escaping (S) -> Void) -> AsyncToken {
+        return self.asyncWriteAfter(deadline: deadline) {
             work(state)
         }
     }
@@ -166,8 +192,8 @@ private protocol ReadWriteTaskAdapter {
     
     func read<T>(inQueue isInQueue: Bool, execute work: () throws -> T) rethrows -> T
     func write<T>(inQueue isInQueue: Bool, execute work: () throws -> T) rethrows -> T
-    func asyncWrite(execute work: @escaping () -> Void)
-    
+    func asyncWrite(execute work: @escaping () -> Void) -> ReadWriteTask.AsyncToken
+    func asyncWriteAfter(deadline: DispatchTime, execute work: @escaping () -> Void) -> ReadWriteTask.AsyncToken
 }
 
 private final class SerialTaskAdapter: ReadWriteTaskAdapter {
@@ -194,8 +220,16 @@ private final class SerialTaskAdapter: ReadWriteTaskAdapter {
         }
     }
     
-    func asyncWrite(execute work: @escaping () -> Void) {
-        self.queue.async(execute: work)
+    func asyncWrite(execute work: @escaping () -> Void) -> ReadWriteTask.AsyncToken {
+        let workItem = DispatchWorkItem(block: work)
+        self.queue.async(execute: workItem)
+        return .init(workItem: workItem)
+    }
+    
+    func asyncWriteAfter(deadline: DispatchTime, execute work: @escaping () -> Void) -> ReadWriteTask.AsyncToken {
+        let workItem = DispatchWorkItem(block: work)
+        self.queue.asyncAfter(deadline: deadline, execute: workItem)
+        return .init(workItem: workItem)
     }
     
 }
@@ -253,15 +287,27 @@ private final class ConcurrentTaskAdapter: ReadWriteTaskAdapter {
         }
     }
     
-    func asyncWrite(execute work: @escaping () -> Void) {
+    func asyncWrite(execute work: @escaping () -> Void) -> ReadWriteTask.AsyncToken {
         // https://stackoverflow.com/questions/76457430/why-is-this-swift-readers-writers-code-causing-deadlock
         // 若开启的「sync」过多，又正在执行「async(flags: .barrier)」，当线程池耗尽时会导致死锁
         // 这里使用另一个串行队列，通过异步调用、同步write的方式来解决这个问题，同时串行队列会保证调用顺序
-        self.asyncWriteQueue.async {
+        let workItem = DispatchWorkItem {
             self.write(inQueue: false) {
                 work()
             }
         }
+        self.asyncWriteQueue.async(execute: workItem)
+        return .init(workItem: workItem)
+    }
+    
+    func asyncWriteAfter(deadline: DispatchTime, execute work: @escaping () -> Void) -> ReadWriteTask.AsyncToken {
+        let workItem = DispatchWorkItem {
+            self.write(inQueue: false) {
+                work()
+            }
+        }
+        self.asyncWriteQueue.asyncAfter(deadline: deadline, execute: workItem)
+        return .init(workItem: workItem)
     }
     
 }
