@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
     s.name                  = "ThreadSafe"
-    s.version               = "1.2.5"
+    s.version               = "1.2.6"
     s.summary               = "ThreadSafe"
     s.homepage              = "https://github.com/CloudlessMoon/ThreadSafe"
     s.license               = "MIT"
