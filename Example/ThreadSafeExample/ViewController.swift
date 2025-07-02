@@ -104,6 +104,14 @@ extension ViewController {
                         self.readWriteName = "\(item)"
                         
                         _ = self.readWriteTask.read { defer { self.readWriteCount += 1 }; return self.readWriteName }
+                        
+                        self.readWriteTask.write {
+                            self.readWriteCount += 1
+                            
+                            _ = self.readWriteTask.read { defer { self.readWriteCount += 1 }; return self.readWriteName }
+                            
+                            self.readWriteName = "\(item)"
+                        }
                     }
                 }
                 
