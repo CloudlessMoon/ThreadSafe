@@ -9,9 +9,24 @@ import Foundation
 
 public final class ReadWriteTask {
     
-    public enum Attributes {
+    public enum Attributes: Equatable {
         case serial
         case concurrent
+    }
+    
+    public enum QoS: Equatable {
+        case background
+        case utility
+        case `default`
+        case userInitiated
+        case userInteractive
+        case unspecified
+    }
+    
+    public enum AutoreleaseFrequency: Equatable {
+        case inherit
+        case workItem
+        case never
     }
     
     public final class AsyncToken {
@@ -34,7 +49,9 @@ public final class ReadWriteTask {
     
     public let label: String
     
+    public let qos: QoS
     public let attributes: Attributes
+    public let autoreleaseFrequency: AutoreleaseFrequency
     
     private static let specificKey = DispatchSpecificKey<Set<AtomicInt>>()
     
@@ -43,15 +60,22 @@ public final class ReadWriteTask {
     private let initiallyContext = AtomicInt()
     private let contextLock = UnfairLock()
     
-    public init(label: String, attributes: Attributes = .concurrent) {
+    public init(
+        label: String,
+        qos: QoS = .unspecified,
+        attributes: Attributes = .concurrent,
+        autoreleaseFrequency: AutoreleaseFrequency = .inherit
+    ) {
         self.label = label
+        self.qos = qos
         self.attributes = attributes
+        self.autoreleaseFrequency = autoreleaseFrequency
         
         switch self.attributes {
         case .serial:
-            self.adapter = SerialTaskAdapter(label: label)
+            self.adapter = SerialTaskAdapter(label: label, qos: qos, autoreleaseFrequency: autoreleaseFrequency)
         case .concurrent:
-            self.adapter = ConcurrentTaskAdapter(label: label)
+            self.adapter = ConcurrentTaskAdapter(label: label, qos: qos, autoreleaseFrequency: autoreleaseFrequency)
         }
         
         self.adapter.queue.setSpecific(key: Self.specificKey, value: [self.initiallyContext])
@@ -196,8 +220,16 @@ private final class SerialTaskAdapter: ReadWriteTaskAdapter {
     
     let queue: DispatchQueue
     
-    init(label: String) {
-        self.queue = DispatchQueue(label: label)
+    init(
+        label: String,
+        qos: ReadWriteTask.QoS,
+        autoreleaseFrequency: ReadWriteTask.AutoreleaseFrequency
+    ) {
+        self.queue = DispatchQueue(
+            label: label,
+            qos: .init(qos),
+            autoreleaseFrequency: .init(autoreleaseFrequency)
+        )
     }
     
     func read<T>(inQueue isInQueue: Bool, execute work: () throws -> T) rethrows -> T {
@@ -242,9 +274,22 @@ private final class ConcurrentTaskAdapter: ReadWriteTaskAdapter {
     @UnfairLockValueWrapper
     private var isWriting: Bool = false
     
-    init(label: String) {
-        self.queue = DispatchQueue(label: label, attributes: .concurrent)
-        self.asyncWriteQueue = DispatchQueue(label: "\(self.queue.label).async-write")
+    init(
+        label: String,
+        qos: ReadWriteTask.QoS,
+        autoreleaseFrequency: ReadWriteTask.AutoreleaseFrequency
+    ) {
+        self.queue = DispatchQueue(
+            label: label,
+            qos: .init(qos),
+            attributes: .concurrent,
+            autoreleaseFrequency: .init(autoreleaseFrequency)
+        )
+        self.asyncWriteQueue = DispatchQueue(
+            label: "\(self.queue.label).async-write",
+            qos: .init(qos),
+            autoreleaseFrequency: .init(autoreleaseFrequency)
+        )
     }
     
     func read<T>(inQueue isInQueue: Bool, execute work: () throws -> T) rethrows -> T {
@@ -322,4 +367,40 @@ private struct AtomicInt: Hashable {
             return value
         }
     }
+}
+
+private extension DispatchQoS {
+    
+    init(_ qos: ReadWriteTask.QoS) {
+        switch qos {
+        case .background:
+            self = .background
+        case .utility:
+            self = .utility
+        case .default:
+            self = .default
+        case .userInitiated:
+            self = .userInitiated
+        case .userInteractive:
+            self = .userInteractive
+        case .unspecified:
+            self = .unspecified
+        }
+    }
+    
+}
+
+private extension DispatchQueue.AutoreleaseFrequency {
+    
+    init(_ autoreleaseFrequency: ReadWriteTask.AutoreleaseFrequency) {
+        switch autoreleaseFrequency {
+        case .inherit:
+            self = .inherit
+        case .workItem:
+            self = .workItem
+        case .never:
+            self = .never
+        }
+    }
+    
 }
