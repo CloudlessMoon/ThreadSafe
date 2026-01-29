@@ -12,7 +12,7 @@ included:
   - ./
   - ../Sources
 excluded:
-  - Pods
+  - ThreadSafeExamplePackage/.build
 identifier_name:
   allowed_symbols: "_"
   min_length: 1
