@@ -65,6 +65,7 @@ Example/Gemfile.lock
 # SPM
 .DS_Store
 .build
+.swiftpm
 .swiftpm/configuration/registries.json
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
 .netrc

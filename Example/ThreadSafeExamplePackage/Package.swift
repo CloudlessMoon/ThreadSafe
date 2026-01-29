@@ -29,11 +29,12 @@ let package = Package(
         ),
         .target(
             name: "Debug",
-            dependencies: [
-                "SwiftLintPlugins"
-            ],
+            dependencies: [],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
+            ],
+            plugins: [
+                .plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")
             ]
         )
     ]

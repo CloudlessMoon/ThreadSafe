@@ -1,22 +1,13 @@
 {
-  "originHash" : "c804858889ebe26aefb66ea063f399d3daf35d0a340f6ac8e58f1d257b0a37dc",
+  "originHash" : "69c7a3fc1aef2816cc6f4d8a2732451de65f9de0388fdc0f79ab5cc6a0ef3135",
   "pins" : [
     {
-      "identity" : "alamofire",
+      "identity" : "swiftlintplugins",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/Alamofire/Alamofire.git",
+      "location" : "https://github.com/SimplyDanny/SwiftLintPlugins",
       "state" : {
-        "revision" : "7be73f6c2b5cd90e40798b06ebd5da8f9f79cf88",
-        "version" : "5.11.0"
-      }
-    },
-    {
-      "identity" : "kingfisher",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/onevcat/Kingfisher.git",
-      "state" : {
-        "revision" : "d30a5fad881137e2267f96a8e3fc35c58999bb94",
-        "version" : "8.6.2"
+        "revision" : "8a4640d14777685ba8f14e832373160498fbab92",
+        "version" : "0.63.2"
       }
     }
   ],
