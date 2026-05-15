@@ -7,7 +7,7 @@
 
 import Foundation
 
-fileprivate extension DispatchQueue {
+private extension DispatchQueue {
     
     static let mainKey: DispatchSpecificKey<Int> = {
         let key = DispatchSpecificKey<Int>()
@@ -23,12 +23,12 @@ public extension ThreadSafeWrapper where Base: DispatchQueue {
         return Base.getSpecific(key: Base.mainKey) != nil
     }
     
-    static func onMain(execute work: @escaping () -> Void) {
+    static func onMain(execute work: @MainActor @escaping () -> Void) {
         if Base.threadSafe.isMain {
-            work()
+            MainActor.assumeIsolated(work)
         } else {
             Base.main.async {
-                work()
+                MainActor.assumeIsolated(work)
             }
         }
     }
