@@ -67,22 +67,22 @@ extension ReadWriteValueProjected {
     
     @discardableResult
     public func asyncMutating(execute work: @escaping (inout Value) -> Void) -> ReadWriteTask.AsyncToken {
-        return try self.readWrite.asyncMutating(execute: work)
+        return self.readWrite.asyncMutating(execute: work)
     }
     
     @discardableResult
     public func asyncMutating<S>(state: S, execute work: @escaping (S, inout Value) -> Void) -> ReadWriteTask.AsyncToken {
-        return try self.readWrite.asyncMutating(state: state, execute: work)
+        return self.readWrite.asyncMutating(state: state, execute: work)
     }
     
     @discardableResult
     public func asyncMutating(deadline: DispatchTime, execute work: @escaping (inout Value) -> Void) -> ReadWriteTask.AsyncToken {
-        return try self.readWrite.asyncMutating(deadline: deadline, execute: work)
+        return self.readWrite.asyncMutating(deadline: deadline, execute: work)
     }
     
     @discardableResult
     public func asyncMutating<S>(state: S, deadline: DispatchTime, execute work: @escaping (S, inout Value) -> Void) -> ReadWriteTask.AsyncToken {
-        return try self.readWrite.asyncMutating(state: state, deadline: deadline, execute: work)
+        return self.readWrite.asyncMutating(state: state, deadline: deadline, execute: work)
     }
     
 }

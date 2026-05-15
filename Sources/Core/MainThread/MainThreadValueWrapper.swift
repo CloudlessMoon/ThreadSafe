@@ -66,22 +66,22 @@ extension MainThreadValueProjected {
     
     @discardableResult
     public func asyncMutating(execute work: @MainActor @escaping (inout Value) -> Void) -> DispatchWorkItem {
-        return try self.mainThread.asyncMutating(execute: work)
+        return self.mainThread.asyncMutating(execute: work)
     }
     
     @discardableResult
     public func asyncMutating<S>(state: S, execute work: @MainActor @escaping (S, inout Value) -> Void) -> DispatchWorkItem {
-        return try self.mainThread.asyncMutating(state: state, execute: work)
+        return self.mainThread.asyncMutating(state: state, execute: work)
     }
     
     @discardableResult
     public func asyncMutating(deadline: DispatchTime, execute work: @MainActor @escaping (inout Value) -> Void) -> DispatchWorkItem {
-        return try self.mainThread.asyncMutating(deadline: deadline, execute: work)
+        return self.mainThread.asyncMutating(deadline: deadline, execute: work)
     }
     
     @discardableResult
     public func asyncMutating<S>(state: S, deadline: DispatchTime, execute work: @MainActor @escaping (S, inout Value) -> Void) -> DispatchWorkItem {
-        return try self.mainThread.asyncMutating(state: state, deadline: deadline, execute: work)
+        return self.mainThread.asyncMutating(state: state, deadline: deadline, execute: work)
     }
     
 }

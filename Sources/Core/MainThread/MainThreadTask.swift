@@ -91,7 +91,7 @@ extension MainThreadTask {
         assert(Thread.isMainThread, "not in the main thread")
     }
     
-    public static func assertNotOMainThread() {
+    public static func assertNotOnMainThread() {
         assert(!Thread.isMainThread, "in the main thread")
     }
     

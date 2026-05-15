@@ -53,14 +53,14 @@ extension ReadWriteValue {
     
     @discardableResult
     public func asyncMutating(execute work: @escaping (inout Value) -> Void) -> ReadWriteTask.AsyncToken {
-        return try self.task.asyncWrite {
+        return self.task.asyncWrite {
             work(&self._value)
         }
     }
     
     @discardableResult
     public func asyncMutating<S>(state: S, execute work: @escaping (S, inout Value) -> Void) -> ReadWriteTask.AsyncToken {
-        return try self.task.asyncWrite(state: state) {
+        return self.task.asyncWrite(state: state) {
             work($0, &self._value)
         }
     }

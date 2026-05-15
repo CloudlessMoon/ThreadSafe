@@ -63,14 +63,14 @@ extension MainThreadValue {
     
     @discardableResult
     public func asyncMutating(execute work: @MainActor @escaping (inout Value) -> Void) -> DispatchWorkItem {
-        return try self.task.async {
+        return self.task.async {
             work(&self._value)
         }
     }
     
     @discardableResult
     public func asyncMutating<S>(state: S, execute work: @MainActor @escaping (S, inout Value) -> Void) -> DispatchWorkItem {
-        return try self.task.async(state: state) {
+        return self.task.async(state: state) {
             work($0, &self._value)
         }
     }
