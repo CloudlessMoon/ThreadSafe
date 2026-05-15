@@ -26,6 +26,14 @@ import Foundation
     
 }
 
+extension ReadWriteValueWrapper: CustomStringConvertible {
+    
+    public var description: String {
+        return String(describing: self.projectedValue.readWrite)
+    }
+    
+}
+
 public final class ReadWriteValueProjected<Value> {
     
     public var task: ReadWriteTask {
@@ -45,10 +53,36 @@ public final class ReadWriteValueProjected<Value> {
     
 }
 
-extension ReadWriteValueWrapper: CustomStringConvertible {
+extension ReadWriteValueProjected {
     
-    public var description: String {
-        return String(describing: self.projectedValue.readWrite)
+    @discardableResult
+    public func mutating(execute work: (inout Value) throws -> Void) rethrows -> Value {
+        return try self.readWrite.mutating(execute: work)
+    }
+    
+    @discardableResult
+    public func mutating<S>(state: S, execute work: (S, inout Value) throws -> Void) rethrows -> Value {
+        return try self.readWrite.mutating(state: state, execute: work)
+    }
+    
+    @discardableResult
+    public func asyncMutating(execute work: @escaping (inout Value) -> Void) -> ReadWriteTask.AsyncToken {
+        return try self.readWrite.asyncMutating(execute: work)
+    }
+    
+    @discardableResult
+    public func asyncMutating<S>(state: S, execute work: @escaping (S, inout Value) -> Void) -> ReadWriteTask.AsyncToken {
+        return try self.readWrite.asyncMutating(state: state, execute: work)
+    }
+    
+    @discardableResult
+    public func asyncMutating(deadline: DispatchTime, execute work: @escaping (inout Value) -> Void) -> ReadWriteTask.AsyncToken {
+        return try self.readWrite.asyncMutating(deadline: deadline, execute: work)
+    }
+    
+    @discardableResult
+    public func asyncMutating<S>(state: S, deadline: DispatchTime, execute work: @escaping (S, inout Value) -> Void) -> ReadWriteTask.AsyncToken {
+        return try self.readWrite.asyncMutating(state: state, deadline: deadline, execute: work)
     }
     
 }

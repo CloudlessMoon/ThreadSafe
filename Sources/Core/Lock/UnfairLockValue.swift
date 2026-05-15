@@ -32,6 +32,26 @@ public final class UnfairLockValue<Value> {
     
 }
 
+extension UnfairLockValue {
+    
+    @discardableResult
+    public func mutating(execute work: (inout Value) throws -> Void) rethrows -> Value {
+        return try self.lock.withLock {
+            try work(&self._value)
+            return self._value
+        }
+    }
+    
+    @discardableResult
+    public func mutating<S>(state: S, execute work: (S, inout Value) throws -> Void) rethrows -> Value {
+        return try self.lock.withLock(state: state) {
+            try work($0, &self._value)
+            return self._value
+        }
+    }
+    
+}
+
 extension UnfairLockValue: CustomStringConvertible {
     
     public var description: String {

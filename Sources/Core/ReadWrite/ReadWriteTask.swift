@@ -269,10 +269,10 @@ private final class ConcurrentTaskAdapter: ReadWriteTaskAdapter {
     private let asyncWriteQueue: DispatchQueue
     
     @UnfairLockValueWrapper
-    private var isReading: Bool = false
+    private var readingCount: UInt = 0
     
     @UnfairLockValueWrapper
-    private var isWriting: Bool = false
+    private var writingCount: UInt = 0
     
     init(
         label: String,
@@ -293,17 +293,17 @@ private final class ConcurrentTaskAdapter: ReadWriteTaskAdapter {
     }
     
     func read<T>(inQueue isInQueue: Bool, execute work: () throws -> T) rethrows -> T {
-        if self.isReading && isInQueue {
+        if self.readingCount > 0 && isInQueue {
             assertionFailure("在「read」中嵌套「read」会造成死锁且无法规避，请避免使用")
             return try work()
-        } else if self.isWriting && isInQueue {
+        } else if self.writingCount > 0 && isInQueue {
             /// 在「write」中嵌套「read」会造成死锁，这里规避掉了死锁
             return try work()
         } else {
             return try self.queue.sync {
-                self.isReading = true
+                self.$readingCount.mutating { $0 += 1 }
                 defer {
-                    self.isReading = false
+                    self.$readingCount.mutating { $0 -= 1 }
                 }
                 return try work()
             }
@@ -311,17 +311,17 @@ private final class ConcurrentTaskAdapter: ReadWriteTaskAdapter {
     }
     
     func write<T>(inQueue isInQueue: Bool, execute work: () throws -> T) rethrows -> T {
-        if self.isReading && isInQueue {
+        if self.readingCount > 0 && isInQueue {
             assertionFailure("在「read」中嵌套「write」会造成死锁且无法规避，请避免使用")
             return try work()
-        } else if self.isWriting && isInQueue {
+        } else if self.writingCount > 0 && isInQueue {
             /// 在「write」中嵌套「write」会造成死锁，这里规避掉了死锁
             return try work()
         } else {
             return try self.queue.sync(flags: .barrier) {
-                self.isWriting = true
+                self.$writingCount.mutating { $0 += 1 }
                 defer {
-                    self.isWriting = false
+                    self.$writingCount.mutating { $0 -= 1 }
                 }
                 return try work()
             }

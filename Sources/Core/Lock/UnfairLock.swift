@@ -34,4 +34,10 @@ extension UnfairLock {
         return try work()
     }
     
+    public func withLock<S, T>(state: S, execute work: (S) throws -> T) rethrows -> T {
+        return try self.withLock {
+            return try work(state)
+        }
+    }
+    
 }

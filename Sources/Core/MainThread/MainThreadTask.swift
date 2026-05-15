@@ -40,23 +40,59 @@ extension MainThreadTask {
     }
     
     public func currentOrAsync(execute work: @MainActor @escaping () -> Void) {
-        if Thread.isMainThread {
+        if Thread.isMainThread || DispatchQueue.threadSafe.isMain {
             self.sync(execute: work)
         } else {
             self.async(execute: work)
         }
     }
     
-    public func async(execute work: @MainActor @escaping () -> Void) {
-        DispatchQueue.main.async {
-            work()
+    public func currentOrAsync<S>(state: S, execute work: @MainActor @escaping (S) -> Void) {
+        if Thread.isMainThread || DispatchQueue.threadSafe.isMain {
+            self.sync(state: state, execute: work)
+        } else {
+            self.async(state: state, execute: work)
         }
     }
     
-    public func async<S>(state: S, execute work: @MainActor @escaping (S) -> Void) {
-        self.async {
+    @discardableResult
+    public func async(execute work: @MainActor @escaping () -> Void) -> DispatchWorkItem {
+        let workItem = DispatchWorkItem(block: work)
+        DispatchQueue.main.async(execute: workItem)
+        return workItem
+    }
+    
+    @discardableResult
+    public func async<S>(state: S, execute work: @MainActor @escaping (S) -> Void) -> DispatchWorkItem {
+        return self.async {
             work(state)
         }
+    }
+    
+    @discardableResult
+    public func asyncAfter(deadline: DispatchTime, execute work: @MainActor @escaping () -> Void) -> DispatchWorkItem {
+        let workItem = DispatchWorkItem(block: work)
+        DispatchQueue.main.asyncAfter(deadline: deadline, execute: workItem)
+        return workItem
+    }
+    
+    @discardableResult
+    public func asyncAfter<S>(state: S, deadline: DispatchTime, execute work: @MainActor @escaping (S) -> Void) -> DispatchWorkItem {
+        return self.asyncAfter(deadline: deadline) {
+            work(state)
+        }
+    }
+    
+}
+
+extension MainThreadTask {
+    
+    public static func assertOnMainThread() {
+        assert(Thread.isMainThread, "not in the main thread")
+    }
+    
+    public static func assertNotOMainThread() {
+        assert(!Thread.isMainThread, "in the main thread")
     }
     
 }
