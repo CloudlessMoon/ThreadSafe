@@ -28,7 +28,7 @@ extension MainThreadTask {
         } else {
             DispatchQueue.threadSafe.assertNotOnMainQueue()
             return try DispatchQueue.main.sync {
-                return try work()
+                return try MainActor.assumeIsolated(work)
             }
         }
     }
@@ -57,7 +57,7 @@ extension MainThreadTask {
     
     @discardableResult
     public func async(execute work: @MainActor @escaping () -> Void) -> DispatchWorkItem {
-        let workItem = DispatchWorkItem(block: work)
+        let workItem = DispatchWorkItem { MainActor.assumeIsolated(work) }
         DispatchQueue.main.async(execute: workItem)
         return workItem
     }
@@ -71,7 +71,7 @@ extension MainThreadTask {
     
     @discardableResult
     public func asyncAfter(deadline: DispatchTime, execute work: @MainActor @escaping () -> Void) -> DispatchWorkItem {
-        let workItem = DispatchWorkItem(block: work)
+        let workItem = DispatchWorkItem { MainActor.assumeIsolated(work) }
         DispatchQueue.main.asyncAfter(deadline: deadline, execute: workItem)
         return workItem
     }
