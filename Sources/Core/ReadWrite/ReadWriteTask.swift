@@ -166,7 +166,7 @@ extension ReadWriteTask {
     private func isInQueue(with currentContext: Set<AtomicInt>) -> Bool {
         return self.contextLock.withLock {
             let context = self.adapter.queue.getSpecific(key: Self.specificKey) ?? []
-            assert(context.count > 0)
+            assert(!context.isEmpty)
             return currentContext.contains(where: { context.contains($0) })
         }
     }
@@ -178,7 +178,7 @@ extension ReadWriteTask {
             currentContext.forEach {
                 context.insert($0)
             }
-            assert(context.count > 0)
+            assert(!context.isEmpty)
             guard context.count != previous.count else {
                 return
             }
@@ -196,7 +196,7 @@ extension ReadWriteTask {
                 }
                 context.remove($0)
             }
-            assert(context.count > 0)
+            assert(!context.isEmpty)
             guard context.count != previous.count else {
                 return
             }
