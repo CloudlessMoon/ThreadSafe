@@ -17,7 +17,7 @@ let package = Package(
     ],
     dependencies: [
         .package(name: "ThreadSafe", path: "../../"),
-        .package(url: "https://github.com/SimplyDanny/SwiftLintPlugins", .upToNextMinor(from: "0.63.2"))
+        .package(url: "https://github.com/SimplyDanny/SwiftLintPlugins", .upToNextMinor(from: "0.65.0"))
     ],
     targets: [
         .target(
