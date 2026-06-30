@@ -43,10 +43,24 @@ extension RecursiveLockValue {
     }
     
     @discardableResult
+    public func mutating<T>(execute work: (inout Value) throws -> T) rethrows -> T {
+        return try self.lock.withLock {
+            return try work(&self._value)
+        }
+    }
+    
+    @discardableResult
     public func mutating<S>(state: S, execute work: (S, inout Value) throws -> Void) rethrows -> Value {
         return try self.lock.withLock(state: state) {
             try work($0, &self._value)
             return self._value
+        }
+    }
+    
+    @discardableResult
+    public func mutating<S, T>(state: S, execute work: (S, inout Value) throws -> T) rethrows -> T {
+        return try self.lock.withLock(state: state) {
+            return try work($0, &self._value)
         }
     }
     

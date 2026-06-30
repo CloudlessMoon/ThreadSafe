@@ -52,7 +52,17 @@ extension FairLockValueProjected {
     }
     
     @discardableResult
+    public func mutating<T>(execute work: (inout Value) throws -> T) rethrows -> T {
+        return try self.lock.mutating(execute: work)
+    }
+    
+    @discardableResult
     public func mutating<S>(state: S, execute work: (S, inout Value) throws -> Void) rethrows -> Value {
+        return try self.lock.mutating(state: state, execute: work)
+    }
+    
+    @discardableResult
+    public func mutating<S, T>(state: S, execute work: (S, inout Value) throws -> T) rethrows -> T {
         return try self.lock.mutating(state: state, execute: work)
     }
     
