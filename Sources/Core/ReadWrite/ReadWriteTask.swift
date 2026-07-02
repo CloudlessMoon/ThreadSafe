@@ -167,13 +167,7 @@ extension ReadWriteTask {
         guard !currentContext.isEmpty else {
             return false
         }
-        return self.contextLock.withLock {
-            let context = self.adapter.queue.getSpecific(key: Self.specificKey) ?? []
-            assert(!context.isEmpty)
-            return currentContext.contains(where: {
-                $0 == ObjectIdentifier(self.adapter.queue) && context.contains($0)
-            })
-        }
+        return currentContext.contains(where: { $0 == ObjectIdentifier(self.adapter.queue) })
     }
     
     private func setContext(with currentContext: Set<ObjectIdentifier>) {
