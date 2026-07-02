@@ -176,10 +176,7 @@ extension ReadWriteTask {
         }
         self.contextLock.withLock {
             let previous = self.adapter.queue.getSpecific(key: Self.specificKey) ?? []
-            var context = previous
-            currentContext.forEach {
-                context.insert($0)
-            }
+            let context = previous.union(currentContext)
             assert(!context.isEmpty)
             guard context.count != previous.count else {
                 return
@@ -194,13 +191,7 @@ extension ReadWriteTask {
         }
         self.contextLock.withLock {
             let previous = self.adapter.queue.getSpecific(key: Self.specificKey) ?? []
-            var context = previous
-            previous.forEach {
-                guard $0 != self.context && currentContext.contains($0) else {
-                    return
-                }
-                context.remove($0)
-            }
+            let context = previous.filter { $0 == self.context || !currentContext.contains($0) }
             assert(!context.isEmpty)
             guard context.count != previous.count else {
                 return
