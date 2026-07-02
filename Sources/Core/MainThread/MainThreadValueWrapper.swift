@@ -7,21 +7,35 @@
 
 import Foundation
 
-@propertyWrapper public final class MainThreadValueWrapper<Value> {
+@propertyWrapper public struct MainThreadValueWrapper<Value> {
     
-    public let projectedValue: MainThreadValueProjected<Value>
-    
-    public var wrappedValue: Value {
+    public static subscript<EnclosingSelf: AnyObject>(
+        _enclosingInstance object: EnclosingSelf,
+        wrapped wrappedKeyPath: ReferenceWritableKeyPath<EnclosingSelf, Value>,
+        storage storageKeyPath: ReferenceWritableKeyPath<EnclosingSelf, Self>
+    ) -> Value {
         get {
-            return self.projectedValue.mainThread.value
+            return object[keyPath: storageKeyPath].mainThread.value
         }
         set {
-            self.projectedValue.mainThread.value = newValue
+            object[keyPath: storageKeyPath].mainThread.value = newValue
         }
     }
     
+    public var projectedValue: MainThreadValueProjected<Value> {
+        return MainThreadValueProjected(self.mainThread)
+    }
+    
+    @available(*, unavailable, message: "@MainThreadValueWrapper is only available on properties of classes")
+    public var wrappedValue: Value {
+        get { fatalError() }
+        set { fatalError() }
+    }
+    
+    private let mainThread: MainThreadValue<Value>
+    
     public init(wrappedValue: Value) {
-        self.projectedValue = MainThreadValueProjected(value: wrappedValue)
+        self.mainThread = MainThreadValue(wrappedValue)
     }
     
 }
@@ -29,17 +43,17 @@ import Foundation
 extension MainThreadValueWrapper: CustomStringConvertible {
     
     public var description: String {
-        return String(describing: self.projectedValue.mainThread)
+        return String(describing: self.mainThread)
     }
     
 }
 
-public final class MainThreadValueProjected<Value> {
+public struct MainThreadValueProjected<Value> {
     
-    fileprivate var mainThread: MainThreadValue<Value>
+    private let mainThread: MainThreadValue<Value>
     
-    fileprivate init(value: Value) {
-        self.mainThread = MainThreadValue(value)
+    fileprivate init(_ mainThread: MainThreadValue<Value>) {
+        self.mainThread = mainThread
     }
     
 }

@@ -7,21 +7,35 @@
 
 import Foundation
 
-@propertyWrapper public final class ReadWriteValueWrapper<Value> {
+@propertyWrapper public struct ReadWriteValueWrapper<Value> {
     
-    public let projectedValue: ReadWriteValueProjected<Value>
-    
-    public var wrappedValue: Value {
+    public static subscript<EnclosingSelf: AnyObject>(
+        _enclosingInstance object: EnclosingSelf,
+        wrapped wrappedKeyPath: ReferenceWritableKeyPath<EnclosingSelf, Value>,
+        storage storageKeyPath: ReferenceWritableKeyPath<EnclosingSelf, Self>
+    ) -> Value {
         get {
-            return self.projectedValue.readWrite.value
+            return object[keyPath: storageKeyPath].readWrite.value
         }
         set {
-            self.projectedValue.readWrite.value = newValue
+            object[keyPath: storageKeyPath].readWrite.value = newValue
         }
     }
     
+    public var projectedValue: ReadWriteValueProjected<Value> {
+        return ReadWriteValueProjected(self.readWrite)
+    }
+    
+    @available(*, unavailable, message: "@ReadWriteValueWrapper is only available on properties of classes")
+    public var wrappedValue: Value {
+        get { fatalError() }
+        set { fatalError() }
+    }
+    
+    private let readWrite: ReadWriteValue<Value>
+    
     public init(wrappedValue: Value, task: ReadWriteTask = .init(label: "com.cloudlessmoon.thread-safe.read-write-value-wrapper")) {
-        self.projectedValue = ReadWriteValueProjected(value: wrappedValue, task: task)
+        self.readWrite = ReadWriteValue(wrappedValue, task: task)
     }
     
 }
@@ -29,12 +43,12 @@ import Foundation
 extension ReadWriteValueWrapper: CustomStringConvertible {
     
     public var description: String {
-        return String(describing: self.projectedValue.readWrite)
+        return String(describing: self.readWrite)
     }
     
 }
 
-public final class ReadWriteValueProjected<Value> {
+public struct ReadWriteValueProjected<Value> {
     
     public var task: ReadWriteTask {
         get {
@@ -45,10 +59,10 @@ public final class ReadWriteValueProjected<Value> {
         }
     }
     
-    fileprivate var readWrite: ReadWriteValue<Value>
+    private let readWrite: ReadWriteValue<Value>
     
-    fileprivate init(value: Value, task: ReadWriteTask) {
-        self.readWrite = ReadWriteValue(value, task: task)
+    fileprivate init(_ readWrite: ReadWriteValue<Value>) {
+        self.readWrite = readWrite
     }
     
 }

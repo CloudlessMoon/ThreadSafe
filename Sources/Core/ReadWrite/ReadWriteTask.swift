@@ -29,7 +29,7 @@ public final class ReadWriteTask {
         case never
     }
     
-    public final class AsyncToken {
+    public struct AsyncToken {
         
         public var isCancelled: Bool {
             return self.workItem.isCancelled

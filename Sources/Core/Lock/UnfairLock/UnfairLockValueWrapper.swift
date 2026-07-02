@@ -7,21 +7,35 @@
 
 import Foundation
 
-@propertyWrapper public final class UnfairLockValueWrapper<Value> {
+@propertyWrapper public struct UnfairLockValueWrapper<Value> {
     
-    public let projectedValue: UnfairLockValueProjected<Value>
-    
-    public var wrappedValue: Value {
+    public static subscript<EnclosingSelf: AnyObject>(
+        _enclosingInstance object: EnclosingSelf,
+        wrapped wrappedKeyPath: ReferenceWritableKeyPath<EnclosingSelf, Value>,
+        storage storageKeyPath: ReferenceWritableKeyPath<EnclosingSelf, Self>
+    ) -> Value {
         get {
-            return self.projectedValue.lock.value
+            return object[keyPath: storageKeyPath].lock.value
         }
         set {
-            self.projectedValue.lock.value = newValue
+            object[keyPath: storageKeyPath].lock.value = newValue
         }
     }
     
+    public var projectedValue: UnfairLockValueProjected<Value> {
+        return UnfairLockValueProjected(self.lock)
+    }
+    
+    @available(*, unavailable, message: "@UnfairLockValueWrapper is only available on properties of classes")
+    public var wrappedValue: Value {
+        get { fatalError() }
+        set { fatalError() }
+    }
+    
+    private let lock: UnfairLockValue<Value>
+    
     public init(wrappedValue: Value) {
-        self.projectedValue = UnfairLockValueProjected(value: wrappedValue)
+        self.lock = UnfairLockValue(wrappedValue)
     }
     
 }
@@ -29,17 +43,17 @@ import Foundation
 extension UnfairLockValueWrapper: CustomStringConvertible {
     
     public var description: String {
-        return String(describing: self.projectedValue.lock.value)
+        return String(describing: self.lock)
     }
     
 }
 
-public final class UnfairLockValueProjected<Value> {
+public struct UnfairLockValueProjected<Value> {
     
-    fileprivate let lock: UnfairLockValue<Value>
+    private let lock: UnfairLockValue<Value>
     
-    fileprivate init(value: Value) {
-        self.lock = UnfairLockValue(value)
+    fileprivate init(_ lock: UnfairLockValue<Value>) {
+        self.lock = lock
     }
     
 }

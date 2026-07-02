@@ -7,21 +7,35 @@
 
 import Foundation
 
-@propertyWrapper public final class RecursiveLockValueWrapper<Value> {
+@propertyWrapper public struct RecursiveLockValueWrapper<Value> {
     
-    public let projectedValue: RecursiveLockValueProjected<Value>
-    
-    public var wrappedValue: Value {
+    public static subscript<EnclosingSelf: AnyObject>(
+        _enclosingInstance object: EnclosingSelf,
+        wrapped wrappedKeyPath: ReferenceWritableKeyPath<EnclosingSelf, Value>,
+        storage storageKeyPath: ReferenceWritableKeyPath<EnclosingSelf, Self>
+    ) -> Value {
         get {
-            return self.projectedValue.lock.value
+            return object[keyPath: storageKeyPath].lock.value
         }
         set {
-            self.projectedValue.lock.value = newValue
+            object[keyPath: storageKeyPath].lock.value = newValue
         }
     }
     
+    public var projectedValue: RecursiveLockValueProjected<Value> {
+        return RecursiveLockValueProjected(self.lock)
+    }
+    
+    @available(*, unavailable, message: "@RecursiveLockValueWrapper is only available on properties of classes")
+    public var wrappedValue: Value {
+        get { fatalError() }
+        set { fatalError() }
+    }
+    
+    private let lock: RecursiveLockValue<Value>
+    
     public init(wrappedValue: Value) {
-        self.projectedValue = RecursiveLockValueProjected(value: wrappedValue)
+        self.lock = RecursiveLockValue(wrappedValue)
     }
     
 }
@@ -29,17 +43,17 @@ import Foundation
 extension RecursiveLockValueWrapper: CustomStringConvertible {
     
     public var description: String {
-        return String(describing: self.projectedValue.lock.value)
+        return String(describing: self.lock)
     }
     
 }
 
-public final class RecursiveLockValueProjected<Value> {
+public struct RecursiveLockValueProjected<Value> {
     
-    fileprivate let lock: RecursiveLockValue<Value>
+    private let lock: RecursiveLockValue<Value>
     
-    fileprivate init(value: Value) {
-        self.lock = RecursiveLockValue(value)
+    fileprivate init(_ lock: RecursiveLockValue<Value>) {
+        self.lock = lock
     }
     
 }

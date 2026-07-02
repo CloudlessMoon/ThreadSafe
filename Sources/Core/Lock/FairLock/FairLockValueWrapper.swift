@@ -7,21 +7,35 @@
 
 import Foundation
 
-@propertyWrapper public final class FairLockValueWrapper<Value> {
+@propertyWrapper public struct FairLockValueWrapper<Value> {
     
-    public let projectedValue: FairLockValueProjected<Value>
-    
-    public var wrappedValue: Value {
+    public static subscript<EnclosingSelf: AnyObject>(
+        _enclosingInstance object: EnclosingSelf,
+        wrapped wrappedKeyPath: ReferenceWritableKeyPath<EnclosingSelf, Value>,
+        storage storageKeyPath: ReferenceWritableKeyPath<EnclosingSelf, Self>
+    ) -> Value {
         get {
-            return self.projectedValue.lock.value
+            return object[keyPath: storageKeyPath].lock.value
         }
         set {
-            self.projectedValue.lock.value = newValue
+            object[keyPath: storageKeyPath].lock.value = newValue
         }
     }
     
+    public var projectedValue: FairLockValueProjected<Value> {
+        return FairLockValueProjected(self.lock)
+    }
+    
+    @available(*, unavailable, message: "@FairLockValueWrapper is only available on properties of classes")
+    public var wrappedValue: Value {
+        get { fatalError() }
+        set { fatalError() }
+    }
+    
+    private let lock: FairLockValue<Value>
+    
     public init(wrappedValue: Value) {
-        self.projectedValue = FairLockValueProjected(value: wrappedValue)
+        self.lock = FairLockValue(wrappedValue)
     }
     
 }
@@ -29,17 +43,17 @@ import Foundation
 extension FairLockValueWrapper: CustomStringConvertible {
     
     public var description: String {
-        return String(describing: self.projectedValue.lock.value)
+        return String(describing: self.lock)
     }
     
 }
 
-public final class FairLockValueProjected<Value> {
+public struct FairLockValueProjected<Value> {
     
-    fileprivate let lock: FairLockValue<Value>
+    private let lock: FairLockValue<Value>
     
-    fileprivate init(value: Value) {
-        self.lock = FairLockValue(value)
+    fileprivate init(_ lock: FairLockValue<Value>) {
+        self.lock = lock
     }
     
 }
