@@ -217,7 +217,7 @@ extension ReadWriteTask {
     
 }
 
-private protocol ReadWriteTaskAdapter {
+private protocol ReadWriteTaskAdapter: AnyObject {
     
     var queue: DispatchQueue { get }
     
