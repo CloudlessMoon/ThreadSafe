@@ -53,11 +53,11 @@ public final class ReadWriteTask {
     public let attributes: Attributes
     public let autoreleaseFrequency: AutoreleaseFrequency
     
-    private static let specificKey = DispatchSpecificKey<Set<AtomicInt>>()
+    private static let specificKey = DispatchSpecificKey<Set<ObjectIdentifier>>()
     
     private let adapter: ReadWriteTaskAdapter
     
-    private let initiallyContext = AtomicInt()
+    private let context: ObjectIdentifier
     private let contextLock = UnfairLock()
     
     public init(
@@ -77,8 +77,8 @@ public final class ReadWriteTask {
         case .concurrent:
             self.adapter = ConcurrentTaskAdapter(label: label, qos: qos, autoreleaseFrequency: autoreleaseFrequency)
         }
-        
-        self.adapter.queue.setSpecific(key: Self.specificKey, value: [self.initiallyContext])
+        self.context = ObjectIdentifier(self.adapter.queue)
+        self.adapter.queue.setSpecific(key: Self.specificKey, value: [self.context])
     }
     
 }
@@ -159,19 +159,27 @@ extension ReadWriteTask {
 
 extension ReadWriteTask {
     
-    private func getCurrentContext() -> Set<AtomicInt> {
+    private func getCurrentContext() -> Set<ObjectIdentifier> {
         return DispatchQueue.getSpecific(key: Self.specificKey) ?? []
     }
     
-    private func isInQueue(with currentContext: Set<AtomicInt>) -> Bool {
+    private func isInQueue(with currentContext: Set<ObjectIdentifier>) -> Bool {
+        guard !currentContext.isEmpty else {
+            return false
+        }
         return self.contextLock.withLock {
             let context = self.adapter.queue.getSpecific(key: Self.specificKey) ?? []
             assert(!context.isEmpty)
-            return currentContext.contains(where: { context.contains($0) })
+            return currentContext.contains(where: {
+                $0 == ObjectIdentifier(self.adapter.queue) && context.contains($0)
+            })
         }
     }
     
-    private func setContext(with currentContext: Set<AtomicInt>) {
+    private func setContext(with currentContext: Set<ObjectIdentifier>) {
+        guard !currentContext.isEmpty else {
+            return
+        }
         self.contextLock.withLock {
             let previous = self.adapter.queue.getSpecific(key: Self.specificKey) ?? []
             var context = previous
@@ -186,12 +194,15 @@ extension ReadWriteTask {
         }
     }
     
-    private func removeContext(with currentContext: Set<AtomicInt>) {
+    private func removeContext(with currentContext: Set<ObjectIdentifier>) {
+        guard !currentContext.isEmpty else {
+            return
+        }
         self.contextLock.withLock {
             let previous = self.adapter.queue.getSpecific(key: Self.specificKey) ?? []
             var context = previous
             previous.forEach {
-                guard $0 != self.initiallyContext && currentContext.contains($0) else {
+                guard $0 != self.context && currentContext.contains($0) else {
                     return
                 }
                 context.remove($0)
@@ -351,22 +362,6 @@ private final class ConcurrentTaskAdapter: ReadWriteTaskAdapter {
         return .init(workItem: workItem)
     }
     
-}
-
-private struct AtomicInt: Hashable {
-    
-    private static let lock = UnfairLock()
-    private static var current: UInt = 1
-    
-    private let value: UInt
-    
-    fileprivate init() {
-        self.value = AtomicInt.lock.withLock {
-            let value = AtomicInt.current
-            AtomicInt.current = value + 1
-            return value
-        }
-    }
 }
 
 private extension DispatchQoS {
