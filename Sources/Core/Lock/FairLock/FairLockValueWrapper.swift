@@ -29,7 +29,7 @@ import Foundation
     @available(*, unavailable, message: "@FairLockValueWrapper is only available on properties of classes")
     public var wrappedValue: Value {
         get { fatalError() }
-        set { fatalError() }
+        nonmutating set { fatalError() }
     }
     
     private let lock: FairLockValue<Value>
