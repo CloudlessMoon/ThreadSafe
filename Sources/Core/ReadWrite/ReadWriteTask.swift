@@ -167,7 +167,7 @@ extension ReadWriteTask {
         guard !currentContext.isEmpty else {
             return false
         }
-        return currentContext.contains(where: { $0 == self.context })
+        return currentContext.contains(self.context)
     }
     
     private func setContext(with currentContext: Set<ObjectIdentifier>) {
