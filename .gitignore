@@ -69,3 +69,7 @@ Example/Gemfile.lock
 .swiftpm/configuration/registries.json
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
 .netrc
+
+# Agents
+.omo/
+.codegraph/
