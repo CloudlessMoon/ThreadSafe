@@ -17,7 +17,7 @@ class ViewController: UIViewController {
     
     private let mainThreadTask = MainThreadTask.default
     
-    @UnfairLockValueWrapper
+    @ReadWriteValueWrapper
     private var readWriteCount: Int = 0 {
         didSet {
             print("readWriteCount \(self.readWriteCount)")
@@ -26,7 +26,7 @@ class ViewController: UIViewController {
     
     private var readWriteName = "0"
     
-    @UnfairLockValueWrapper
+    @ReadWriteValueWrapper
     private var mainThreadCount: Int = 0 {
         didSet {
             assert(self.mainThreadCount - oldValue == 1)
