@@ -26,7 +26,7 @@ import Foundation
         return ReadWriteValueProjected(self.readWrite)
     }
     
-    @available(*, unavailable, message: "@ReadWriteValueWrapper is only available on properties of classes")
+    @available(*, unavailable, message: "the propertyWrapper is only available on properties of classes")
     public var wrappedValue: Value {
         get { fatalError() }
         nonmutating set { fatalError() }

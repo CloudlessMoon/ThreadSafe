@@ -26,7 +26,7 @@ import Foundation
         return MainThreadValueProjected(self.mainThread)
     }
     
-    @available(*, unavailable, message: "@MainThreadValueWrapper is only available on properties of classes")
+    @available(*, unavailable, message: "the propertyWrapper is only available on properties of classes")
     public var wrappedValue: Value {
         get { fatalError() }
         nonmutating set { fatalError() }
