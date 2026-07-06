@@ -7,7 +7,7 @@ Pod::Spec.new do |s|
     s.author                = "CloudlessMoon"
     s.source                = { :git => "https://github.com/CloudlessMoon/ThreadSafe.git", :tag => "#{s.version}" }
     s.platform              = :ios, "13.0"
-    s.swift_versions        = ["5.1"]
+    s.swift_versions        = ["5.9"]
     s.requires_arc          = true
 
     s.default_subspec = "Core"
