@@ -4,7 +4,7 @@ import PackageDescription
 let package = Package(
     name: "ThreadSafe",
     platforms: [
-        .iOS(.v13)
+        .iOS(.v15)
     ],
     products: [
         .library(
@@ -18,5 +18,5 @@ let package = Package(
             path: "Sources"
         )
     ],
-    swiftLanguageModes: [.version("5.1")]
+    swiftLanguageModes: [.version("5.9")]
 )
