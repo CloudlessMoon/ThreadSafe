@@ -10,7 +10,7 @@ Pod::Spec.new do |s|
   s.homepage         = "https://github.com/CloudlessMoon/ThreadSafe"
   s.license          = "MIT"
   s.author           = "CloudlessMoon"
-  s.source           = { :git => "https://github.com/CloudlessMoon/ThreadSafe.git", :tag => "#{s.version}" }
+  s.source           = { :git => "https://github.com/CloudlessMoon/ThreadSafe.git", :tag => s.version.to_s }
   
   s.default_subspec = "Core"
   s.subspec "Core" do |ss|
